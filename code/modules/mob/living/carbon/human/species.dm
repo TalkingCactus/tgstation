@@ -970,6 +970,8 @@
 				H.visible_message("<span class='danger'>[M] has [atk_verb]ed [H]!</span>", \
 								"<span class='userdanger'>[M] has [atk_verb]ed [H]!</span>")
 
+				if(M.limb_destroyer)
+					H.dismembering_strike(M, affecting.body_zone)
 				H.apply_damage(damage, BRUTE, affecting, armor_block)
 				add_logs(M, H, "punched")
 				if((H.stat != DEAD) && damage >= M.dna.species.punchstunthreshold)
@@ -1030,10 +1032,7 @@
 
 	var/hit_area
 	if(!affecting) //Something went wrong. Maybe the limb is missing?
-		H.visible_message("<span class='danger'>[user] has attempted to attack [H] with [I]!</span>", \
-						"<span class='userdanger'>[user] has attempted to attack [H] with [I]!</span>")
-		playsound(H, 'sound/weapons/punchmiss.ogg', 25, 1, -1)
-		return 0
+		affecting = H.bodyparts[1]
 
 	hit_area = affecting.name
 	var/def_zone = affecting.body_zone

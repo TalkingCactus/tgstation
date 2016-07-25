@@ -149,7 +149,8 @@ var/list/admin_verbs_debug = list(
 	/client/proc/map_template_load,
 	/client/proc/map_template_upload,
 	/client/proc/jump_to_ruin,
-	/client/proc/clear_dynamic_transit
+	/client/proc/clear_dynamic_transit,
+	/client/proc/toggle_medal_disable
 	)
 var/list/admin_verbs_possess = list(
 	/proc/possess,
@@ -299,7 +300,7 @@ var/list/admin_verbs_hideable = list(
 		/client/proc/count_objects_all,
 		/client/proc/cmd_assume_direct_control,
 		/client/proc/startSinglo,
-		/client/proc/fps,
+		/client/proc/set_server_fps,
 		/client/proc/cmd_admin_grantfullaccess,
 		/client/proc/cmd_admin_areatest,
 		/client/proc/readmin
