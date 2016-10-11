@@ -50,9 +50,12 @@
 		new CB.build_path(loc, CB)
 		qdel(src)
 
+#define PULSE_MEDAL "Jackpot"
+
 /obj/machinery/computer/arcade/proc/prizevend()
 	if(prob(0.0001)) //1 in a million
 		new /obj/item/weapon/gun/energy/pulse/prize(src)
+		UnlockMedal(PULSE_MEDAL,usr.client)
 
 	if(!contents.len)
 		var/prizeselect = pickweight(prizes)
@@ -64,7 +67,7 @@
 		"<span class='notice'>You hear a chime and a clunk.</span>")
 
 	prize.loc = src.loc
-
+#undef PULSE_MEDAL
 /obj/machinery/computer/arcade/emp_act(severity)
 	..(severity)
 
@@ -495,7 +498,7 @@
 							M.hallucination += 30
 						else
 							usr << "<span class='userdanger'>Something strikes you from behind! It hurts like hell and feel like a blunt weapon, but nothing is there...</span>"
-							M.take_organ_damage(30)
+							M.take_bodypart_damage(30)
 							playsound(loc, 'sound/weapons/genhit2.ogg', 100, 1)
 					if(ORION_TRAIL_ILLNESS)
 						var/severity = rand(1,3) //pray to RNGesus. PRAY, PIGS
@@ -513,7 +516,7 @@
 						if(prob(75))
 							M.Weaken(3)
 							say("A sudden gust of powerful wind slams [M] into the floor!")
-							M.take_organ_damage(25)
+							M.take_bodypart_damage(25)
 							playsound(src.loc, 'sound/weapons/Genhit.ogg', 100, 1)
 						else
 							M << "<span class='userdanger'>A violent gale blows past you, and you barely manage to stay standing!</span>"

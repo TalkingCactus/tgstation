@@ -54,16 +54,14 @@
 			take_damage(rand(40,80), BRUTE, 0)
 
 /obj/structure/table/blob_act(obj/effect/blob/B)
-	if(prob(75))
-		qdel(src)
+	take_damage(rand(75,150), BRUTE, 0)
 
 /obj/structure/table/narsie_act()
 	if(prob(20))
 		new /obj/structure/table/wood(src.loc)
 
 /obj/structure/table/ratvar_act()
-	if(prob(20))
-		new /obj/structure/table/reinforced/brass(src.loc)
+	new /obj/structure/table/reinforced/brass(src.loc)
 
 /obj/structure/table/mech_melee_attack(obj/mecha/M)
 	playsound(src.loc, 'sound/weapons/punch4.ogg', 50, 1)
@@ -81,8 +79,10 @@
 /obj/structure/table/attack_animal(mob/living/simple_animal/user)
 	user.changeNext_move(CLICK_CD_MELEE)
 	user.do_attack_animation(src)
-	if(user.melee_damage_upper)
+	if(user.melee_damage_upper || user.obj_damage)
 		var/dmg_dealt = user.melee_damage_upper
+		if(user.obj_damage)
+			dmg_dealt = user.obj_damage
 		if(user.environment_smash)
 			dmg_dealt = 100
 		visible_message("<span class='warning'>[user] smashes [src]!</span>")
@@ -281,7 +281,7 @@
 		check_break(M)
 
 /obj/structure/table/glass/proc/check_break(mob/living/M)
-	if(has_gravity(M) && M.mob_size > MOB_SIZE_SMALL)
+	if(M.has_gravity() && M.mob_size > MOB_SIZE_SMALL)
 		table_shatter(M)
 
 /obj/structure/table/glass/proc/table_shatter(mob/M)
@@ -334,6 +334,24 @@
 /obj/structure/table/wood/poker/narsie_act()
 	new /obj/structure/table/wood(src.loc)
 
+/obj/structure/table/wood/fancy
+	name = "fancy table"
+	desc = "A standard metal table frame covered with an amazingly fancy, patterned cloth."
+	icon = 'icons/obj/structures.dmi'
+	icon_state = "fancy_table"
+	frame = /obj/structure/table_frame
+	framestack = /obj/item/stack/rods
+	buildstack = /obj/item/stack/tile/carpet
+	canSmoothWith = list(/obj/structure/table/wood/fancy)
+
+/obj/structure/table/wood/fancy/New()
+	icon = 'icons/obj/smooth_structures/fancy_table.dmi' //so that the tables place correctly in the map editor
+	..()
+
+/obj/structure/table/wood/fancy/burn() //basically made out of metal
+	new frame(loc)
+	qdel(src)
+
 /*
  * Reinforced tables
  */
@@ -373,13 +391,11 @@
 	icon = 'icons/obj/smooth_structures/brass_table.dmi'
 	icon_state = "brass_table"
 	frame = /obj/structure/table_frame/brass
-	framestackamount = 0
-	buildstackamount = 0
+	framestack = /obj/item/stack/sheet/brass
+	buildstack = /obj/item/stack/sheet/brass
+	framestackamount = 1
+	buildstackamount = 1
 	canSmoothWith = list(/obj/structure/table/reinforced/brass)
-
-/obj/structure/table/reinforced/brass/table_destroy()
-	new frame(src.loc)
-	qdel(src)
 
 /obj/structure/table/reinforced/brass/narsie_act()
 	take_damage(rand(15, 45), BRUTE)
@@ -461,10 +477,7 @@
 			take_damage(rand(5,25), BRUTE, 0)
 
 /obj/structure/rack/blob_act(obj/effect/blob/B)
-	if(prob(75))
-		qdel(src)
-	else
-		rack_destroy()
+	rack_destroy()
 
 
 /obj/structure/rack/mech_melee_attack(obj/mecha/M)
@@ -487,7 +500,7 @@
 		. = . || mover.checkpass(PASSTABLE)
 
 /obj/structure/rack/MouseDrop_T(obj/O, mob/user)
-	if ((!( istype(O, /obj/item/weapon) ) || user.get_active_hand() != O))
+	if ((!( istype(O, /obj/item/weapon) ) || user.get_active_held_item() != O))
 		return
 	if(!user.drop_item())
 		return
@@ -536,13 +549,16 @@
 /obj/structure/rack/attack_animal(mob/living/simple_animal/user)
 	user.changeNext_move(CLICK_CD_MELEE)
 	user.do_attack_animation(src)
-	if(user.melee_damage_upper)
+	if(user.melee_damage_upper || user.obj_damage)
+		var/dmg_dealt = user.melee_damage_upper
+		if(user.obj_damage)
+			dmg_dealt = user.obj_damage
 		if(user.environment_smash)
 			playsound(src, 'sound/effects/meteorimpact.ogg', 100, 1)
 			visible_message("<span class='warning'>[user] smashes [src] apart.</span>")
 			rack_destroy()
 		else
-			take_damage(user.melee_damage_upper, user.melee_damage_type)
+			take_damage(dmg_dealt, user.melee_damage_type)
 
 
 /obj/structure/rack/attack_tk() // no telehulk sorry

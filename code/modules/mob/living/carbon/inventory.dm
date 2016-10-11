@@ -10,10 +10,6 @@
 			return handcuffed
 		if(slot_legcuffed)
 			return legcuffed
-		if(slot_l_hand)
-			return l_hand
-		if(slot_r_hand)
-			return r_hand
 	return null
 
 
@@ -24,19 +20,25 @@
 	if(!istype(I))
 		return
 
-	if(I == l_hand)
-		l_hand = null
-	else if(I == r_hand)
-		r_hand = null
+	var/index = get_held_index_of_item(I)
+	if(index)
+		held_items[index] = null
 
 	if(I.pulledby)
 		I.pulledby.stop_pulling()
 
-	I.screen_loc = null // will get moved if inventory is visible
+	I.screen_loc = null
+	if(client)
+		client.screen -= I
+	if(observers && observers.len)
+		for(var/M in observers)
+			var/mob/dead/observe = M
+			if(observe.client)
+				observe.client.screen -= I
 	I.loc = src
-	I.equipped(src, slot)
 	I.layer = ABOVE_HUD_LAYER
-
+	I.appearance_flags |= NO_CLIENT_COLOR
+	var/not_handled = FALSE
 	switch(slot)
 		if(slot_back)
 			back = I
@@ -53,19 +55,23 @@
 		if(slot_legcuffed)
 			legcuffed = I
 			update_inv_legcuffed()
-		if(slot_l_hand)
-			l_hand = I
-			update_inv_l_hand()
-		if(slot_r_hand)
-			r_hand = I
-			update_inv_r_hand()
+		if(slot_hands)
+			put_in_hands(I)
+			update_inv_hands()
 		if(slot_in_backpack)
-			if(I == get_active_hand())
+			if(I == get_active_held_item())
 				unEquip(I)
 			I.loc = back
 		else
-			return 1
+			not_handled = TRUE
 
+	//Item has been handled at this point and equipped callback can be safely called
+	//We cannot call it for items that have not been handled as they are not yet correctly
+	//in a slot (handled further down inheritance chain, probably living/carbon/human/equip_to_slot
+	if(!not_handled)
+		I.equipped(src, slot)
+
+	return not_handled
 
 /mob/living/carbon/unEquip(obj/item/I)
 	. = ..() //Sets the default return value to what the parent returns.

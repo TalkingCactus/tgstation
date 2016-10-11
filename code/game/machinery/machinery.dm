@@ -98,7 +98,7 @@ Class Procs:
 	icon = 'icons/obj/stationobjs.dmi'
 	verb_say = "beeps"
 	verb_yell = "blares"
-	pressure_resistance = 10
+	pressure_resistance = 15
 	var/stat = 0
 	var/emagged = 0
 	var/use_power = 1
@@ -114,6 +114,7 @@ Class Procs:
 	var/global/gl_uid = 1
 	var/panel_open = 0
 	var/state_open = 0
+	var/critical_machine = FALSE //If this machine is critical to station operation and should have the area be excempted from power failures.
 	var/mob/living/occupant = null
 	var/unsecuring_tool = /obj/item/weapon/wrench
 	var/interact_open = 0 // Can the machine be interacted with when in maint/when the panel is open.
@@ -189,9 +190,7 @@ Class Procs:
 	update_icon()
 
 /obj/machinery/blob_act(obj/effect/blob/B)
-	if(!density)
-		qdel(src)
-	if(prob(75))
+	if(density && prob(75))
 		qdel(src)
 
 /obj/machinery/proc/auto_use_power()
@@ -276,10 +275,13 @@ Class Procs:
 /obj/machinery/attack_animal(mob/living/simple_animal/M)
 	M.changeNext_move(CLICK_CD_MELEE)
 	M.do_attack_animation(src)
-	if(M.melee_damage_upper > 0)
+	if(M.melee_damage_upper || M.obj_damage)
 		M.visible_message("<span class='danger'>[M.name] smashes against \the [src.name].</span>",\
 		"<span class='danger'>You smash against the [src.name].</span>")
-		take_damage(M.melee_damage_upper, M.melee_damage_type, 1)
+		if(M.obj_damage)
+			take_damage(M.obj_damage, M.melee_damage_type, 1)
+		else
+			take_damage(rand(M.melee_damage_lower,M.melee_damage_upper), M.melee_damage_type, 1)
 
 
 /obj/machinery/attack_paw(mob/living/user)
@@ -311,11 +313,6 @@ Class Procs:
 	if(!user.IsAdvancedToolUser() && !IsAdminGhost(user))
 		usr << "<span class='warning'>You don't have the dexterity to do this!</span>"
 		return 1
-	if(ishuman(user))
-		var/mob/living/carbon/human/H = user
-		if(prob(H.getBrainLoss()))
-			user << "<span class='warning'>You momentarily forget how to use [src]!</span>"
-			return 1
 	if(!is_interactable())
 		return 1
 	if(set_machine)
@@ -462,13 +459,11 @@ Class Procs:
 	. = 1
 
 
-/obj/machinery/tesla_act(var/power)
+/obj/machinery/tesla_act(power, explosive = FALSE)
 	..()
-	if(prob(85))
-		emp_act(2)
+	if(prob(85) && explosive)
+		explosion(src.loc,1,2,4,flame_range = 2, adminlog = 0, smoke = 0)
 	else if(prob(50))
-		ex_act(3)
-	else if(prob(90))
-		ex_act(2)
+		emp_act(2)
 	else
-		ex_act(1)
+		ex_act(2)

@@ -31,6 +31,8 @@
 /obj/item/weapon/shield/hit_reaction(mob/living/carbon/human/owner, attack_text, final_block_chance, damage, attack_type)
 	if(attack_type == THROWN_PROJECTILE_ATTACK)
 		final_block_chance += 30
+	if(attack_type == LEAP_ATTACK)
+		final_block_chance = 100
 	return ..()
 
 /obj/item/weapon/shield/riot/roman
@@ -72,7 +74,7 @@
 /obj/item/weapon/shield/energy/attack_self(mob/living/carbon/human/user)
 	if(user.disabilities & CLUMSY && prob(50))
 		user << "<span class='warning'>You beat yourself in the head with [src].</span>"
-		user.take_organ_damage(5)
+		user.take_bodypart_damage(5)
 	active = !active
 	icon_state = "eshield[active]"
 

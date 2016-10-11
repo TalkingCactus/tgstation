@@ -45,11 +45,21 @@
 /obj/structure/barricade/attack_animal(mob/living/simple_animal/M)
 	M.changeNext_move(CLICK_CD_MELEE)
 	M.do_attack_animation(src)
-	if(M.melee_damage_upper == 0 || (M.melee_damage_type != BRUTE && M.melee_damage_type != BURN))
+	if(!M.melee_damage_upper && !M.obj_damage || (M.melee_damage_type != BRUTE && M.melee_damage_type != BURN))
 		return
 	visible_message("<span class='danger'>[M] [M.attacktext] [src]!</span>")
 	add_logs(M, src, "attacked")
-	take_damage(M.melee_damage_upper)
+	if(M.obj_damage)
+		take_damage(M.obj_damage)
+	else
+		take_damage(M.melee_damage_upper)
+
+/obj/structure/barricade/attack_alien(mob/living/user)
+	user.changeNext_move(CLICK_CD_MELEE)
+	user.do_attack_animation(src)
+	user.visible_message("<span class='danger'>[user] claws at [src]!</span>")
+	playsound(user.loc, 'sound/weapons/slash.ogg', 100, 1)
+	take_damage(50, BRUTE, 0)
 
 /obj/structure/barricade/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/weapon/weldingtool) && user.a_intent != "harm" && material == METAL)

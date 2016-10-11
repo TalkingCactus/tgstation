@@ -15,6 +15,7 @@
 	var/icon_aggro = null // for swapping to when we get aggressive
 	see_in_dark = 8
 	see_invisible = SEE_INVISIBLE_MINIMUM
+	mob_size = MOB_SIZE_LARGE
 
 /mob/living/simple_animal/hostile/asteroid/Aggro()
 	..()
@@ -91,7 +92,7 @@
 
 /mob/living/simple_animal/hostile/asteroid/basilisk/GiveTarget(new_target)
 	if(..()) //we have a target
-		if(isliving(target))
+		if(isliving(target) && !target.Adjacent(targets_from) && ranged_cooldown <= world.time)//No more being shot at point blank or spammed with RNG beams
 			OpenFire(target)
 
 /mob/living/simple_animal/hostile/asteroid/basilisk/ex_act(severity, target)
@@ -222,9 +223,8 @@
 		A.admin_spawned = admin_spawned
 		A.GiveTarget(target)
 		A.friends = friends
-		A.faction = faction
+		A.faction = faction.Copy()
 		ranged_cooldown = world.time + ranged_cooldown_time
-	return
 
 /mob/living/simple_animal/hostile/asteroid/hivelord/AttackingTarget()
 	OpenFire()
@@ -243,7 +243,6 @@
 	actions_types = list(/datum/action/item_action/organ_action/use)
 	var/inert = 0
 	var/preserved = 0
-	var/list/spawned_brood = list()
 
 /obj/item/organ/hivelord_core/New()
 	..()
@@ -273,36 +272,13 @@
 	update_icon()
 
 /obj/item/organ/hivelord_core/ui_action_click()
-	var/spawn_amount = 1
-	if(!inert)
-		spawn_amount++
-
-	for(var/a in spawned_brood)
-		if(!istype(a, /mob/living/simple_animal/hostile/asteroid/hivelordbrood) || qdeleted(a))
-			spawned_brood -= a
-			continue
-	spawn_amount -= spawned_brood.len
-
-	for(var/i = 1 to spawn_amount)
-		var/mob/living/simple_animal/hostile/asteroid/hivelordbrood/blood/B = new (owner.loc)
-		B.link_host(owner)
-		spawned_brood |= B
-
+	owner.revive(full_heal = 1)
+	qdel(src)
 
 /obj/item/organ/hivelord_core/on_life()
 	..()
-	if(owner)
-		owner.adjustBruteLoss(-1)
-		owner.adjustFireLoss(-1)
-		owner.adjustOxyLoss(-2)
-	if(ishuman(owner))
-		var/mob/living/carbon/human/H = owner
-		CHECK_DNA_AND_SPECIES(H)
-		if(NOBLOOD in H.dna.species.specflags)
-			return
-
-		if(H.blood_volume && H.blood_volume < BLOOD_VOLUME_NORMAL)
-			H.blood_volume += 2 // Fast blood regen
+	if(owner.health < HEALTH_THRESHOLD_CRIT)
+		ui_action_click()
 
 /obj/item/organ/hivelord_core/afterattack(atom/target, mob/user, proximity_flag)
 	if(proximity_flag && ishuman(target))
@@ -452,7 +428,6 @@
 	aggro_vision_range = 9
 	idle_vision_range = 5
 	anchored = 1 //Stays anchored until death as to be unpullable
-	mob_size = MOB_SIZE_LARGE
 	var/pre_attack = 0
 	var/pre_attack_icon = "Goliath_preattack"
 	loot = list(/obj/item/stack/sheet/animalhide/goliath_hide)
@@ -733,6 +708,7 @@
 	speak_emote = list("telepathically cries")
 	attack_sound = 'sound/weapons/bladeslice.ogg'
 	stat_attack = 1
+	flying = TRUE
 	robust_searching = 1
 	loot = list()
 	butcher_results = list(/obj/item/weapon/ore/diamond = 2, /obj/item/stack/sheet/sinew = 2, /obj/item/stack/sheet/bone = 1)
@@ -817,18 +793,21 @@
 	robust_searching = 1
 
 /mob/living/simple_animal/hostile/asteroid/hivelordbrood/legion/Life()
-	if(isturf(src.loc))
+	if(isturf(loc))
 		for(var/mob/living/carbon/human/H in view(src,1)) //Only for corpse right next to/on same tile
 			if(H.stat == UNCONSCIOUS)
-				visible_message("<span class='warning'>[src.name] burrows into the flesh of [H]!</span>")
-				var/mob/living/simple_animal/hostile/asteroid/hivelord/legion/L = new(H.loc)
-				visible_message("<span class='warning'>[L] staggers to their feet!</span>")
-				H.death()
-				H.adjustBruteLoss(1000)
-				L.stored_mob = H
-				H.forceMove(L)
-				qdel(src)
+				infest(H)
 	..()
+
+/mob/living/simple_animal/hostile/asteroid/hivelordbrood/legion/proc/infest(mob/living/carbon/human/H)
+	visible_message("<span class='warning'>[name] burrows into the flesh of [H]!</span>")
+	var/mob/living/simple_animal/hostile/asteroid/hivelord/legion/L = new(H.loc)
+	visible_message("<span class='warning'>[L] staggers to their feet!</span>")
+	H.death()
+	H.adjustBruteLoss(1000)
+	L.stored_mob = H
+	H.forceMove(L)
+	qdel(src)
 
 /obj/item/organ/hivelord_core/legion
 	name = "legion's soul"
@@ -854,7 +833,7 @@
 	desc = "[src] has become inert, it crackles no more and is useless for \
 		healing injuries."
 
-/obj/item/organ/hivelord_core/legion/preserved()
+/obj/item/organ/hivelord_core/legion/preserved(implanted = 0)
 	..()
 	desc = "[src] has been stabilized. It no longer crackles with power, but it's healing properties are preserved indefinitely."
 
@@ -991,6 +970,7 @@
 	icon_dead = "tendril"
 	faction = list("mining")
 	weather_immunities = list("lava","ash")
+	luminosity = 1
 	health = 250
 	maxHealth = 250
 	max_mobs = 3
@@ -1006,6 +986,10 @@
 
 /mob/living/simple_animal/hostile/spawner/lavaland/New()
 	..()
+	for(var/F in RANGE_TURFS(1, src))
+		if(istype(F, /turf/closed/mineral))
+			var/turf/closed/mineral/M = F
+			M.ChangeTurf(M.turf_type)
 	gps = new /obj/item/device/gps/internal(src)
 
 /mob/living/simple_animal/hostile/spawner/lavaland/Destroy()
@@ -1036,6 +1020,7 @@
 /obj/effect/collapse
 	name = "collapsing necropolis tendril"
 	desc = "Get clear!"
+	luminosity = 1
 	layer = ABOVE_OPEN_TURF_LAYER
 	icon = 'icons/mob/nest.dmi'
 	icon_state = "tendril"

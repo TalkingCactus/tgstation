@@ -112,11 +112,11 @@
 	layer = POINT_LAYER
 
 /obj/effect/countdown/clockworkgate/get_value()
-	var/obj/structure/clockwork/massive/celestial_gateway/G = attached_to
+	var/obj/structure/destructible/clockwork/massive/celestial_gateway/G = attached_to
 	if(!istype(G))
 		return
 	else if(G.health && !G.purpose_fulfilled)
-		return "<div align='center' valign='middle' style='position:relative; top:0px; left:6px'>[GATEWAY_RATVAR_ARRIVAL - G.progress_in_seconds]</div>"
+		return "<div align='center' valign='middle' style='position:relative; top:0px; left:6px'>[G.get_arrival_text(FALSE)]</div>"
 
 /obj/effect/countdown/transformer
 	name = "transformer countdown"

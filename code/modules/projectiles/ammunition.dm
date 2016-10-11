@@ -16,6 +16,8 @@
 	var/randomspread = 0						//Randomspread for automatics
 	var/delay = 0								//Delay for energy weapons
 	var/click_cooldown_override = 0				//Override this to make your gun have a faster fire rate, in tenths of a second. 4 is the default gun cooldown.
+	var/firing_effect_type = /obj/effect/overlay/temp/dir_setting/firing_effect	//the visual effect appearing when the ammo is fired.
+
 
 /obj/item/ammo_casing/New()
 	..()
@@ -165,3 +167,9 @@
 //Behavior for magazines
 /obj/item/ammo_box/magazine/proc/ammo_count()
 	return stored_ammo.len
+
+/obj/item/ammo_box/magazine/proc/empty_magazine()
+	var/turf_mag = get_turf(src)
+	for(var/obj/item/ammo in stored_ammo)
+		ammo.forceMove(turf_mag)
+		stored_ammo -= ammo

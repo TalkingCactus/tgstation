@@ -10,6 +10,7 @@ var/global/list/deliverybeacons = list()			//list of all MULEbot delivery beacon
 var/global/list/deliverybeacontags = list()			//list of all tags associated with delivery beacons.
 var/global/list/nuke_list = list()
 var/global/list/nuke_tiles = list()					//list of all turfs that turn to animated red grids when a nuke is triggered
+var/global/list/alarmdisplay = list()				//list of all machines or programs that can display station alerts
 
 var/global/list/chemical_reactions_list				//list of all /datum/chemical_reaction datums. Used during chemical reactions
 var/global/list/chemical_reagents_list				//list of all /datum/reagent datums indexed by reagent id. Used by chemistry stuff
@@ -22,5 +23,5 @@ var/global/list/apcs_list = list()					//list of all Area Power Controller machi
 var/global/list/tracked_implants = list()			//list of all current implants that are tracked to work out what sort of trek everyone is on. Sadly not on lavaworld not implemented...
 var/global/list/poi_list = list()					//list of points of interest for observe/follow
 var/global/list/pinpointer_list = list()			//list of all pinpointers. Used to change stuff they are pointing to all at once.
-// A list of all zombie_infection organs, for any mass "animation"
-var/global/list/zombie_infection_list = list()
+var/global/list/zombie_infection_list = list() 		// A list of all zombie_infection organs, for any mass "animation"
+var/global/list/meteor_list = list()				// List of all meteors.

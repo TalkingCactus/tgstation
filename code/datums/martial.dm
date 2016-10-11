@@ -333,8 +333,7 @@
 	else
 		A.start_pulling(D, 1)
 		if(A.pulling)
-			D.drop_r_hand()
-			D.drop_l_hand()
+			D.drop_all_held_items()
 			D.stop_pulling()
 			add_logs(A, D, "grabbed", addition="aggressively")
 			A.grab_state = GRAB_AGGRESSIVE //Instant aggressive grab
@@ -483,7 +482,7 @@
 			var/mob/living/carbon/human/H = user
 			H.apply_damage(2*force, BRUTE, "head")
 		else
-			user.take_organ_damage(2*force)
+			user.take_bodypart_damage(2*force)
 		return
 	if(isrobot(target))
 		return ..()
@@ -515,7 +514,7 @@
 			H.Weaken(4)
 		if(H.staminaloss && !H.sleeping)
 			var/total_health = (H.health - H.staminaloss)
-			if(total_health <= config.health_threshold_crit && !H.stat)
+			if(total_health <= HEALTH_THRESHOLD_CRIT && !H.stat)
 				H.visible_message("<span class='warning'>[user] delivers a heavy hit to [H]'s head, knocking them out cold!</span>", \
 									   "<span class='userdanger'>[user] knocks you unconscious!</span>")
 				H.SetSleeping(30)

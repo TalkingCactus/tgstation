@@ -337,7 +337,7 @@ Turf and target are seperate in case you want to teleport some distance from a t
 		moblist.Add(M)
 	for(var/mob/living/carbon/human/M in sortmob)
 		moblist.Add(M)
-	for(var/mob/living/carbon/brain/M in sortmob)
+	for(var/mob/living/brain/M in sortmob)
 		moblist.Add(M)
 	for(var/mob/living/carbon/alien/M in sortmob)
 		moblist.Add(M)
@@ -496,25 +496,6 @@ Turf and target are seperate in case you want to teleport some distance from a t
 	var/y=arcsin(x/sqrt(1+x*x))
 	return y
 
-
-/proc/anim(turf/location,target as mob|obj,a_icon,a_icon_state as text,flick_anim as text,sleeptime = 0,direction as num)
-//This proc throws up either an icon or an animation for a specified amount of time.
-//The variables should be apparent enough.
-	var/atom/movable/overlay/animation = new(location)
-	if(direction)
-		animation.setDir(direction)
-	animation.icon = a_icon
-	animation.layer = target:layer+1
-	if(a_icon_state)
-		animation.icon_state = a_icon_state
-	else
-		animation.icon_state = "blank"
-		animation.master = target
-		flick(flick_anim, animation)
-	sleep(max(sleeptime, 15))
-	qdel(animation)
-
-
 /atom/proc/GetAllContents()
 	var/list/processing_list = list(src)
 	var/list/assembled = list()
@@ -543,7 +524,8 @@ Turf and target are seperate in case you want to teleport some distance from a t
 				return 0
 			if(current.opacity)
 				return 0
-			for(var/atom/A in current)
+			for(var/thing in current)
+				var/atom/A = thing
 				if(A.opacity)
 					return 0
 			current = get_step_towards(current, target_turf)
@@ -623,57 +605,59 @@ Turf and target are seperate in case you want to teleport some distance from a t
 
 //Takes: Area type as text string or as typepath OR an instance of the area.
 //Returns: A list of all areas of that type in the world.
-/proc/get_areas(areatype)
-	if(!areatype)
-		return null
+/proc/get_areas(areatype, subtypes=TRUE)
 	if(istext(areatype))
 		areatype = text2path(areatype)
-	if(isarea(areatype))
+	else if(isarea(areatype))
 		var/area/areatemp = areatype
 		areatype = areatemp.type
+	else if(!ispath(areatype))
+		return null
 
-	var/list/areas = new/list()
-	for(var/area/N in world)
-		if(istype(N, areatype))
-			areas += N
+	var/list/areas = list()
+	if(subtypes)
+		var/list/cache = typecacheof(areatype)
+		for(var/V in sortedAreas)
+			var/area/A = V
+			if(cache[A.type])
+				areas += V
+	else
+		for(var/V in sortedAreas)
+			var/area/A = V
+			if(A.type == areatype)
+				areas += V
 	return areas
 
 //Takes: Area type as text string or as typepath OR an instance of the area.
 //Returns: A list of all turfs in areas of that type of that type in the world.
-/proc/get_area_turfs(areatype, target_z = 0)
-	if(!areatype)
-		return null
+/proc/get_area_turfs(areatype, target_z = 0, subtypes=FALSE)
 	if(istext(areatype))
 		areatype = text2path(areatype)
-	if(isarea(areatype))
+	else if(isarea(areatype))
 		var/area/areatemp = areatype
 		areatype = areatemp.type
+	else if(!ispath(areatype))
+		return null
 
-	var/list/turfs = new/list()
-	for(var/area/N in world)
-		if(istype(N, areatype))
-			for(var/turf/T in N)
+	var/list/turfs = list()
+	if(subtypes)
+		var/list/cache = typecacheof(areatype)
+		for(var/V in sortedAreas)
+			var/area/A = V
+			if(!cache[A.type])
+				continue
+			for(var/turf/T in A)
+				if(target_z == 0 || target_z == T.z)
+					turfs += T
+	else
+		for(var/V in sortedAreas)
+			var/area/A = V
+			if(A.type != areatype)
+				continue
+			for(var/turf/T in A)
 				if(target_z == 0 || target_z == T.z)
 					turfs += T
 	return turfs
-
-//Takes: Area type as text string or as typepath OR an instance of the area.
-//Returns: A list of all atoms	(objs, turfs, mobs) in areas of that type of that type in the world.
-/proc/get_area_all_atoms(areatype)
-	if(!areatype)
-		return null
-	if(istext(areatype))
-		areatype = text2path(areatype)
-	if(isarea(areatype))
-		var/area/areatemp = areatype
-		areatype = areatemp.type
-
-	var/list/atoms = new/list()
-	for(var/area/N in world)
-		if(istype(N, areatype))
-			for(var/atom/A in N)
-				atoms += A
-	return atoms
 
 /proc/get_cardinal_dir(atom/A, atom/B)
 	var/dx = abs(B.x - A.x)
@@ -963,12 +947,9 @@ var/list/WALLITEMS_INVERSE = list(
 	tY = max(1, min(origin.y + 7 - tY, world.maxy))
 	return locate(tX, tY, tZ)
 
-/proc/IsValidSrc(A)
-	if(istype(A, /datum))
-		var/datum/B = A
-		return !qdeleted(B)
-	if(istype(A, /client))
-		return 1
+/proc/IsValidSrc(datum/D)
+	if(istype(D))
+		return !qdeleted(D)
 	return 0
 
 
@@ -1298,13 +1279,13 @@ B --><-- A
 
 /proc/get_areas_in_z(zlevel)
 	. = list()
-	var/validarea = 0
+	var/validarea = FALSE
 	for(var/V in sortedAreas)
 		var/area/A = V
-		validarea = 1
+		validarea = TRUE
 		for(var/turf/T in A)
 			if(T.z != zlevel)
-				validarea = 0
+				validarea = FALSE
 				break
 		if(validarea)
 			. += A
@@ -1348,17 +1329,23 @@ proc/pick_closest_path(value)
 	CRASH(msg)
 
 //Key thing that stops lag. Cornerstone of performance in ss13, Just sitting here, in unsorted.dm.
+
+//Increases delay as the server gets more overloaded,
+//as sleeps aren't cheap and sleeping only to wake up and sleep again is wasteful
+#define DELTA_CALC max(((max(world.tick_usage, world.cpu) / 100) * max(Master.sleep_delta,1)), 1)
+
 /proc/stoplag()
-	. = 1
+	. = round(1*DELTA_CALC)
 	sleep(world.tick_lag)
 	if (world.tick_usage > TICK_LIMIT_TO_RUN) //woke up, still not enough tick, sleep for more.
-		. += 2
-		sleep(world.tick_lag*2)
+		. += round(2*DELTA_CALC)
+		sleep(world.tick_lag*2*DELTA_CALC)
 		if (world.tick_usage > TICK_LIMIT_TO_RUN) //woke up, STILL not enough tick, sleep for more.
-			. += 4
-			sleep(world.tick_lag*4)
+			. += round(4*DELTA_CALC)
+			sleep(world.tick_lag*4*DELTA_CALC)
 			//you might be thinking of adding more steps to this, or making it use a loop and a counter var
 			//	not worth it.
+#undef DELTA_CALC
 
 /proc/flash_color(mob_or_client, flash_color="#960000", flash_time=20)
 	var/client/C

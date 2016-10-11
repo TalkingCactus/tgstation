@@ -2,6 +2,11 @@
 	mob_list -= src
 	dead_mob_list -= src
 	living_mob_list -= src
+	all_clockwork_mobs -= src
+	if(observers && observers.len)
+		for(var/M in observers)
+			var/mob/dead/observe = M
+			observe.reset_perspective(null)
 	qdel(hud_used)
 	if(mind && mind.current == src)
 		spellremove(src)
@@ -28,7 +33,7 @@ var/next_mob_id = 0
 	hud_list = list()
 	for(var/hud in hud_possible)
 		var/image/I = image('icons/mob/hud.dmi', src, "")
-		I.appearance_flags = RESET_COLOR
+		I.appearance_flags = RESET_COLOR|RESET_TRANSFORM
 		hud_list[hud] = I
 
 /mob/proc/Cell()
@@ -173,11 +178,6 @@ var/next_mob_id = 0
 	return
 
 /mob/proc/get_item_by_slot(slot_id)
-	switch(slot_id)
-		if(slot_l_hand)
-			return l_hand
-		if(slot_r_hand)
-			return r_hand
 	return null
 
 /mob/proc/restrained(ignore_grab)
@@ -188,7 +188,7 @@ var/next_mob_id = 0
 
 //This proc is called whenever someone clicks an inventory ui slot.
 /mob/proc/attack_ui(slot)
-	var/obj/item/W = get_active_hand()
+	var/obj/item/W = get_active_held_item()
 
 	if(istype(W))
 		if(equip_to_slot_if_possible(W, slot,0,0,0))
@@ -208,7 +208,7 @@ var/next_mob_id = 0
 //unset redraw_mob to prevent the mob from being redrawn at the end.
 /mob/proc/equip_to_slot_if_possible(obj/item/W, slot, qdel_on_fail = 0, disable_warning = 0, redraw_mob = 1)
 	if(!istype(W)) return 0
-	if(!W.mob_can_equip(src, slot, disable_warning))
+	if(!W.mob_can_equip(src, null, slot, disable_warning))
 		if(qdel_on_fail)
 			qdel(W)
 		else
@@ -275,6 +275,19 @@ var/next_mob_id = 0
 			clear_fullscreen("remote_view", 0)
 		update_pipe_vision()
 
+/mob/dead/reset_perspective(atom/A)
+	if(client)
+		if(ismob(client.eye) && (client.eye != src))
+			var/mob/target = client.eye
+			if(target.observers)
+				target.observers -= src
+				var/list/L = target.observers
+				if(!L.len)
+					target.observers = null
+	if(..())
+		if(hud_used)
+			client.screen = list()
+			hud_used.show_hud(hud_used.hud_version)
 
 /mob/proc/show_inv(mob/user)
 	return
@@ -381,16 +394,11 @@ var/next_mob_id = 0
 	if(incapacitated())
 		return
 
-	if(hand)
-		var/obj/item/W = l_hand
-		if (W)
-			W.attack_self(src)
-			update_inv_l_hand()
-	else
-		var/obj/item/W = r_hand
-		if (W)
-			W.attack_self(src)
-			update_inv_r_hand()
+	var/obj/item/I = get_active_held_item()
+	if(I)
+		I.attack_self(src)
+		update_inv_hands()
+
 
 /*
 /mob/verb/dump_source()
@@ -406,6 +414,7 @@ var/next_mob_id = 0
 /mob/verb/memory()
 	set name = "Notes"
 	set category = "IC"
+	set desc = "View your character's notes memory."
 	if(mind)
 		mind.show_memory(src)
 	else
@@ -473,33 +482,33 @@ var/next_mob_id = 0
 /mob/verb/observe()
 	set name = "Observe"
 	set category = "OOC"
-	var/is_admin = 0
 
-	if(check_rights_for(client,R_ADMIN))
-		is_admin = 1
-	else if(stat != DEAD || istype(src, /mob/new_player))
+	if(stat != DEAD || istype(src, /mob/new_player))
 		usr << "<span class='notice'>You must be observing to use this!</span>"
 		return
 
-	if(is_admin && stat == DEAD)
-		is_admin = 0
-
 	var/list/creatures = getpois()
 
-	client.perspective = EYE_PERSPECTIVE
+	reset_perspective(null)
 
 	var/eye_name = null
 
-	var/ok = "[is_admin ? "Admin Observe" : "Observe"]"
-	eye_name = input("Please, select a player!", ok, null, null) as null|anything in creatures
+	eye_name = input("Please, select a player!", "Observe", null, null) as null|anything in creatures
 
 	if (!eye_name)
 		return
 
 	var/mob/mob_eye = creatures[eye_name]
-
-	if(client && mob_eye)
+	//Istype so we filter out points of interest that are not mobs
+	if(client && mob_eye && istype(mob_eye))
 		client.eye = mob_eye
+		if(isobserver(src))
+			src.client.screen = list()
+			if(mob_eye.hud_used)
+				if(!mob_eye.observers)
+					mob_eye.observers = list()
+				mob_eye.observers |= src
+				mob_eye.hud_used.show_hud(1,src)
 
 /mob/verb/cancel_camera()
 	set name = "Cancel Camera View"
@@ -520,8 +529,13 @@ var/next_mob_id = 0
 	if(usr.canUseTopic(src, BE_CLOSE, NO_DEXTERY))
 		if(href_list["item"])
 			var/slot = text2num(href_list["item"])
-			var/obj/item/what = get_item_by_slot(slot)
-
+			var/hand_index = text2num(href_list["hand_index"])
+			var/obj/item/what
+			if(hand_index)
+				what = get_item_for_held_index(hand_index)
+				slot = list(slot,hand_index)
+			else
+				what = get_item_by_slot(slot)
 			if(what)
 				usr.stripPanelUnequip(what,src,slot)
 			else
@@ -576,7 +590,7 @@ var/next_mob_id = 0
 
 	if(statpanel("Status"))
 		stat(null, "Map: [MAP_NAME]")
-		if (nextmap && istype(nextmap))
+		if(nextmap && istype(nextmap))
 			stat(null, "Next Map: [nextmap.friendlyname]")
 		stat(null, "Server Time: [time2text(world.realtime, "YYYY-MM-DD hh:mm")]")
 		if(SSshuttle.emergency)
@@ -676,8 +690,7 @@ var/next_mob_id = 0
 	var/has_arms = get_num_arms()
 	var/ignore_legs = get_leg_ignore()
 	if(ko || resting || stunned || chokehold)
-		drop_r_hand()
-		drop_l_hand()
+		drop_all_held_items()
 		unset_machine()
 		if(pulling)
 			stop_pulling()
@@ -701,13 +714,16 @@ var/next_mob_id = 0
 			layer = initial(layer)
 	update_transform()
 	update_action_buttons_icon()
+	if(istype(src, /mob/living))
+		var/mob/living/L = src
+		if(L.has_status_effect(/datum/status_effect/freon))
+			canmove = 0
 	lying_prev = lying
 	return canmove
 
 
 /mob/proc/fall(forced)
-	drop_l_hand()
-	drop_r_hand()
+	drop_all_held_items()
 
 /mob/verb/eastface()
 	set hidden = 1

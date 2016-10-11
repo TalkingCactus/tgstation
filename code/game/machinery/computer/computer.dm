@@ -19,7 +19,10 @@
 	..(location)
 	if(C && istype(C))
 		circuit = C
-	else if(circuit)
+	//Some machines, oldcode arcades mostly, new themselves, so circuit
+	//can already be an instance of a type and trying to new that will
+	//cause a runtime
+	else if(ispath(circuit))
 		circuit = new circuit(null)
 	power_change()
 	update_icon()
@@ -55,7 +58,7 @@
 			take_damage(rand(10,30), BRUTE, 0)
 
 /obj/machinery/computer/ratvar_act()
-	if(!clockwork && prob(20))
+	if(!clockwork)
 		clockwork = TRUE
 		icon_screen = "ratvar[rand(1, 4)]"
 		icon_keyboard = "ratvar_key[rand(1, 6)]"

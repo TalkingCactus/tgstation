@@ -692,18 +692,7 @@ The _flatIcons list is a cache for generated icon files.
 	var/image/copy
 	// Add the atom's icon itself, without pixel_x/y offsets.
 	if(!noIcon)
-		if(curdir == SOUTH)
-			copy = image(curicon, curstate)
-		else
-			var/icon/dirIcon
-			if(curdir == NORTH || curdir == SOUTH || curdir == EAST || curdir == WEST)
-				dirIcon = icon('icons/effects/effects.dmi', "nothing_4way")
-			else
-				dirIcon = icon('icons/effects/effects.dmi', "nothing_8way")
-			var/icon/copyicon = icon(curicon, curstate)
-			dirIcon.Blend(copyicon, ICON_OVERLAY)
-			copy = image(dirIcon)
-		copy.dir = curdir
+		copy = image(icon=curicon, icon_state=curstate, layer=A.layer, dir=curdir)
 		copy.color = A.color
 		copy.alpha = A.alpha
 		copy.blend_mode = curblend
@@ -1018,3 +1007,28 @@ var/global/list/humanoid_icon_cache = list()
 //Lame.
 /image/proc/setDir(newdir)
 	dir = newdir
+
+// Used to make the frozen item visuals for Freon.
+var/list/freeze_item_icons = list()
+
+/atom/proc/freeze_icon_index()
+	return "\ref[initial(icon)]-[initial(icon_state)]"
+
+/obj/proc/make_frozen_visual(var/obj/F)
+	if(!F.is_frozen && (initial(icon) && initial(icon_state)))
+		var/index = freeze_icon_index()
+		var/icon/IC
+		var/icon/P = freeze_item_icons[index]
+		if(!P)
+			P = new /icon
+			for(var/iconstate in icon_states(F.icon))
+				var/icon/O = new('icons/effects/freeze.dmi', "ice_cube")
+				IC = new(F.icon, iconstate)
+				O.Blend(IC, ICON_ADD)
+				P.Insert(O, iconstate)
+			freeze_item_icons[index] = P
+		F.icon = P
+		F.name = "frozen [F.name]"
+		F.is_frozen = TRUE
+		return
+	return

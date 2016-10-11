@@ -23,13 +23,9 @@
 		return 0
 	if(issilicon(mind.current) || isbot(mind.current) || isdrone(mind.current))
 		return 0 //can't convert machines, that's ratvar's thing
-	if(isguardian(mind.current))
-		var/mob/living/simple_animal/hostile/guardian/G = mind.current
-		if(!iscultist(G.summoner))
-			return 0 //can't convert it unless the owner is converted
 	if(is_sacrifice_target(mind))
 		return 0
-	if(mind.enslaved_to)
+	if(mind.enslaved_to && !iscultist(mind.enslaved_to))
 		return 0
 	if(is_servant_of_ratvar(mind.current))
 		return 0
@@ -143,9 +139,7 @@
 	var/list/slots = list(
 		"backpack" = slot_in_backpack,
 		"left pocket" = slot_l_store,
-		"right pocket" = slot_r_store,
-		"left hand" = slot_l_hand,
-		"right hand" = slot_r_hand,
+		"right pocket" = slot_r_store
 	)
 
 	var/T = new item_path(mob)
@@ -156,7 +150,6 @@
 		return 0
 	else
 		mob << "<span class='danger'>You have a [item_name] in your [where]."
-		mob.update_icons()
 		if(where == "backpack")
 			var/obj/item/weapon/storage/B = mob.back
 			B.orient2hud(mob)

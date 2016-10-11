@@ -370,6 +370,14 @@
 	else
 		qdel(src)
 
+/obj/machinery/porta_turret/attack_animal(mob/living/simple_animal/user)
+	user.changeNext_move(CLICK_CD_MELEE)
+	if(user.melee_damage_upper == 0)
+		user.emote("[user.friendly] [src]")
+	else
+		user.do_attack_animation(src)
+		var/damage = rand(user.melee_damage_lower, user.melee_damage_upper)
+		take_damage(damage)
 
 /obj/machinery/porta_turret/take_damage(damage, damage_type = BRUTE, sound_effect = 1)
 	switch(damage_type)
@@ -540,10 +548,7 @@
 			if(allowed(perp) && !lasercolor) //if the perp has security access, return 0
 				return 0
 
-			if((istype(perp.l_hand, /obj/item/weapon/gun) && !istype(perp.l_hand, /obj/item/weapon/gun/projectile/revolver/doublebarrel)) || istype(perp.l_hand, /obj/item/weapon/melee/baton))
-				threatcount += 4
-
-			if((istype(perp.r_hand, /obj/item/weapon/gun) && !istype(perp.r_hand, /obj/item/weapon/gun/projectile/revolver/doublebarrel)) || istype(perp.r_hand, /obj/item/weapon/melee/baton))
+			if(perp.is_holding_item_of_type(/obj/item/weapon/gun) ||  perp.is_holding_item_of_type(/obj/item/weapon/melee/baton))
 				threatcount += 4
 
 			if(istype(perp.belt, /obj/item/weapon/gun) || istype(perp.belt, /obj/item/weapon/melee/baton))
@@ -553,7 +558,7 @@
 		threatcount = 0		//But does not target anyone else
 		if(istype(perp.wear_suit, /obj/item/clothing/suit/redtag))
 			threatcount += 4
-		if(istype(perp.r_hand,/obj/item/weapon/gun/energy/laser/redtag) || istype(perp.l_hand,/obj/item/weapon/gun/energy/laser/redtag))
+		if(perp.is_holding_item_of_type(/obj/item/weapon/gun/energy/laser/redtag))
 			threatcount += 4
 		if(istype(perp.belt, /obj/item/weapon/gun/energy/laser/redtag))
 			threatcount += 2
@@ -562,7 +567,7 @@
 		threatcount = 0
 		if(istype(perp.wear_suit, /obj/item/clothing/suit/bluetag))
 			threatcount += 4
-		if((istype(perp.r_hand,/obj/item/weapon/gun/energy/laser/bluetag)) || (istype(perp.l_hand,/obj/item/weapon/gun/energy/laser/bluetag)))
+		if(perp.is_holding_item_of_type(/obj/item/weapon/gun/energy/laser/bluetag))
 			threatcount += 4
 		if(istype(perp.belt, /obj/item/weapon/gun/energy/laser/bluetag))
 			threatcount += 2
@@ -709,7 +714,8 @@
 
 /obj/machinery/turretid/initialize() //map-placed turrets autolink turrets
 	if(control_area && istext(control_area))
-		for(var/area/A in world)
+		for(var/V in sortedAreas)
+			var/area/A = V
 			if(A.name == control_area)
 				control_area = A
 				break
@@ -721,7 +727,7 @@
 		else
 			control_area = CA
 
-	for(var/obj/machinery/porta_turret/T in get_area_all_atoms(control_area))
+	for(var/obj/machinery/porta_turret/T in control_area)
 		turrets |= T
 
 /obj/machinery/turretid/attackby(obj/item/I, mob/user, params)

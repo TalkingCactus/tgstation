@@ -2,6 +2,7 @@
 	name = "Construct"
 	real_name = "Construct"
 	desc = ""
+	gender = NEUTER
 	speak_emote = list("hisses")
 	response_help  = "thinks better of touching"
 	response_disarm = "flails at"
@@ -21,7 +22,7 @@
 	healable = 0
 	faction = list("cult")
 	flying = 1
-	pressure_resistance = 200
+	pressure_resistance = 100
 	unique_name = 1
 	AIStatus = AI_OFF //normal constructs don't have AI
 	loot = list(/obj/item/weapon/ectoplasm)
@@ -54,7 +55,7 @@
 		if(health < maxHealth)
 			adjustHealth(-5)
 			if(src != M)
-				Beam(M,icon_state="sendbeam",icon='icons/effects/effects.dmi',time=4)
+				Beam(M,icon_state="sendbeam",time=4)
 				M.visible_message("<span class='danger'>[M] repairs some of \the <b>[src]'s</b> dents.</span>", \
 						   "<span class='cult'>You repair some of <b>[src]'s</b> dents, leaving <b>[src]</b> at <b>[health]/[maxHealth]</b> health.</span>")
 			else

@@ -41,6 +41,8 @@ var/list/preferences_datums = list()
 	var/allow_midround_antag = 1
 	var/preferred_map = null
 
+	var/uses_glasses_colour = 0
+
 	//character preferences
 	var/real_name						//our character's name
 	var/be_random_name = 0				//whether we'll have a random name every round
@@ -151,7 +153,7 @@ var/list/preferences_datums = list()
 			dat += "<a href='?_src_=prefs;preference=job;task=menu'>Set Occupation Preferences</a><br></center>"
 			dat += "<h2>Identity</h2>"
 			dat += "<table width='100%'><tr><td width='75%' valign='top'>"
-			if(appearance_isbanned(user))
+			if(jobban_isbanned(user, "appearance"))
 				dat += "<b>You are banned from using custom names and appearances. You can continue to adjust your characters, but you will be randomised once you join the game.</b><br>"
 			dat += "<a href='?_src_=prefs;preference=name;task=random'>Random Name</A> "
 			dat += "<a href='?_src_=prefs;preference=name'>Always Random Name: [be_random_name ? "Yes" : "No"]</a><BR>"

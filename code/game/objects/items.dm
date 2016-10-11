@@ -25,7 +25,7 @@ var/global/image/fire_overlay = image("icon" = 'icons/effects/fire.dmi', "icon_s
 	var/w_class = 3
 	var/slot_flags = 0		//This is used to determine on which slots an item can fit.
 	pass_flags = PASSTABLE
-	pressure_resistance = 3
+	pressure_resistance = 4
 	var/obj/item/master = null
 
 	var/heat_protection = 0 //flags which determine which body parts are protected from heat. Use the HEAD, CHEST, GROIN, etc. flags. See setup.dm
@@ -118,7 +118,8 @@ var/global/image/fire_overlay = image("icon" = 'icons/effects/fire.dmi', "icon_s
 	return ..()
 
 /obj/item/blob_act(obj/effect/blob/B)
-	qdel(src)
+	if(B && B.loc == loc)
+		qdel(src)
 
 /obj/item/ex_act(severity, target)
 	if(severity == 1 || target == src)
@@ -227,10 +228,10 @@ var/global/image/fire_overlay = image("icon" = 'icons/effects/fire.dmi', "icon_s
 				user << "<span class='notice'>You put out the fire on [src].</span>"
 			else
 				user << "<span class='warning'>You burn your hand on [src]!</span>"
-				var/obj/item/bodypart/affecting = H.get_bodypart("[user.hand ? "l" : "r" ]_arm")
+				var/obj/item/bodypart/affecting = H.get_bodypart("[(user.active_hand_index % 2 == 0) ? "r" : "l" ]_arm")
 				if(affecting && affecting.take_damage( 0, 5 ))		// 5 burn damage
-					H.update_damage_overlays(0)
-				H.updatehealth()
+					H.update_damage_overlays()
+
 				return
 		else
 			extinguish()
@@ -343,6 +344,8 @@ var/global/image/fire_overlay = image("icon" = 'icons/effects/fire.dmi', "icon_s
 		var/datum/action/A = X
 		A.Remove(user)
 	if(DROPDEL & flags)
+		//Prevents infinite loops where Destroy() calls an objects dropped() function
+		flags &= ~DROPDEL
 		qdel(src)
 
 // called just as an item is picked up (loc is not yet changed)
@@ -378,9 +381,10 @@ obj/item/proc/item_action_slot_check(slot, mob/user)
 	return 1
 
 //the mob M is attempting to equip this item into the slot passed through as 'slot'. Return 1 if it can do this and 0 if it can't.
+//if this is being done by a mob other than M, it will include the mob equipper, who is trying to equip the item to mob M. equipper will be null otherwise.
 //If you are making custom procs but would like to retain partial or complete functionality of this one, include a 'return ..()' to where you want this to happen.
 //Set disable_warning to 1 if you wish it to not give you outputs.
-/obj/item/proc/mob_can_equip(mob/M, slot, disable_warning = 0)
+/obj/item/proc/mob_can_equip(mob/M, mob/equipper, slot, disable_warning = 0)
 	if(!M)
 		return 0
 
@@ -394,7 +398,7 @@ obj/item/proc/item_action_slot_check(slot, mob/user)
 	if(usr.incapacitated() || !Adjacent(usr) || usr.lying)
 		return
 
-	if(usr.get_active_hand() == null) // Let me know if this has any problems -Yota
+	if(usr.get_active_held_item() == null) // Let me know if this has any problems -Yota
 		usr.UnarmedAttack(src)
 
 //This proc is executed when someone clicks the on-screen UI button.
@@ -452,11 +456,10 @@ obj/item/proc/item_action_slot_check(slot, mob/user)
 		)
 	if(is_human_victim)
 		var/mob/living/carbon/human/U = M
-		if(affecting.take_damage(7))
-			U.update_damage_overlays(0)
+		U.apply_damage(7, BRUTE, affecting)
 
 	else
-		M.take_organ_damage(7)
+		M.take_bodypart_damage(7)
 
 	add_logs(user, M, "attacked", "[src.name]", "(INTENT: [uppertext(user.a_intent)])")
 
@@ -535,7 +538,7 @@ obj/item/proc/item_action_slot_check(slot, mob/user)
 		itempush = 0 //too light to push anything
 	return A.hitby(src, 0, itempush)
 
-/obj/item/throw_at(atom/target, range, speed, mob/thrower, spin=1)
+/obj/item/throw_at(atom/target, range, speed, mob/thrower, spin=1, diagonals_first = 0)
 	thrownby = thrower
 	. = ..()
 	throw_speed = initial(throw_speed) //explosions change this.
@@ -572,11 +575,7 @@ obj/item/proc/item_action_slot_check(slot, mob/user)
 	if(ismob(location))
 		var/mob/M = location
 		var/success = FALSE
-		if(src == M.get_item_by_slot(slot_l_hand))
-			success = TRUE
-		else if(src == M.get_item_by_slot(slot_r_hand))
-			success = TRUE
-		else if(src == M.get_item_by_slot(slot_wear_mask))
+		if(src == M.get_item_by_slot(slot_wear_mask))
 			success = TRUE
 		if(success)
 			location = get_turf(M)
@@ -588,3 +587,8 @@ obj/item/proc/item_action_slot_check(slot, mob/user)
 		. = "<span class='notice'>[user] lights [A] with [src].</span>"
 	else
 		. = ""
+
+
+//when an item modify our speech spans when in our active hand. Override this to modify speech spans.
+/obj/item/proc/get_held_item_speechspans(mob/living/carbon/user)
+	return

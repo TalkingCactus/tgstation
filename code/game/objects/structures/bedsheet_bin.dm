@@ -38,7 +38,7 @@ LINEN BINS
 
 /obj/item/weapon/bedsheet/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/weapon/wirecutters) || I.is_sharp())
-		var/obj/item/stack/sheet/cloth/C = new (loc, 3)
+		var/obj/item/stack/sheet/cloth/C = new (get_turf(src), 3)
 		transfer_fingerprints_to(C)
 		C.add_fingerprint(user)
 		qdel(src)
@@ -174,9 +174,16 @@ LINEN BINS
 	icon_state = "sheetwiz"
 	item_color = "wiz"
 
+/obj/item/weapon/bedsheet/nanotrasen
+	name = "nanotrasen bedsheet"
+	desc = "It has the Nanotrasen logo on it and has an aura of duty."
+	icon_state = "sheetNT"
+	item_color = "nanotrasen"
+
 /obj/item/weapon/bedsheet/ian
 	icon_state = "sheetian"
 	item_color = "ian"
+
 
 /obj/item/weapon/bedsheet/random
 	icon_state = "sheetrainbow"

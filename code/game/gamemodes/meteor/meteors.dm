@@ -118,11 +118,13 @@
 			get_hit()
 
 /obj/effect/meteor/Destroy()
+	meteor_list -= src
 	walk(src,0) //this cancels the walk_towards() proc
 	. = ..()
 
 /obj/effect/meteor/New()
 	..()
+	meteor_list += src
 	if(SSaugury)
 		SSaugury.register_doom(src, threat)
 	SpinAnimation()
@@ -159,6 +161,15 @@
 
 /obj/effect/meteor/ex_act()
 	return
+
+#define METEOR_MEDAL "Your Life Before Your Eyes"
+
+/obj/effect/meteor/examine(mob/user)
+	if(!admin_spawned && isliving(user))
+		UnlockMedal(METEOR_MEDAL,user.client)
+	..()
+
+#undef METEOR_MEDAL
 
 /obj/effect/meteor/attackby(obj/item/weapon/W, mob/user, params)
 	if(istype(W, /obj/item/weapon/pickaxe))

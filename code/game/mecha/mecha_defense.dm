@@ -9,7 +9,7 @@
 	return 1 //always return non-0
 
 
-/obj/mecha/proc/take_damage(amount, type="brute", booster_deflection_modifier = 1, booster_damage_modifier = 1)
+/obj/mecha/proc/take_damage(amount, type="brute", booster_deflection_modifier = 1, booster_damage_modifier = 1, send_message = 1)
 	if(prob(deflect_chance * booster_deflection_modifier))
 		visible_message("<span class='danger'>[src]'s armour deflects the attack!</span>")
 		log_append_to_last("Armor saved.")
@@ -19,18 +19,19 @@
 		damage = damage * booster_damage_modifier
 		health -= damage
 		update_health()
-		occupant_message("<span class='userdanger'>Taking damage!</span>")
+		if(send_message)
+			occupant_message("<span class='userdanger'>Taking damage!</span>")
 		log_append_to_last("Took [damage] points of damage. Damage type: \"[type]\".",1)
 	return 1
 
 
-/obj/mecha/proc/take_directional_damage(amount, type="brute", adir = 0, booster_deflection_modifier = 1, booster_damage_modifier = 1)
+/obj/mecha/proc/take_directional_damage(amount, type="brute", adir = 0, booster_deflection_modifier = 1, booster_damage_modifier = 1, send_message = 1)
 	var/facing_modifier = get_armour_facing(dir2angle(adir) - dir2angle(src))
 
 	booster_damage_modifier /= facing_modifier
 	booster_deflection_modifier *= facing_modifier
 
-	return take_damage(amount, type, booster_deflection_modifier, booster_damage_modifier)
+	return take_damage(amount, type, booster_deflection_modifier, booster_damage_modifier, send_message)
 
 
 /obj/mecha/proc/absorbDamage(damage,damage_type)
@@ -76,11 +77,13 @@
 /obj/mecha/attack_animal(mob/living/simple_animal/user as mob)
 	log_message("Attack by simple animal. Attacker - [user].",1)
 	user.changeNext_move(CLICK_CD_MELEE)
-	if(user.melee_damage_upper == 0)
+	if(!user.melee_damage_upper && !user.obj_damage)
 		user.emote("[user.friendly] [src]")
 	else
 		user.do_attack_animation(src)
 		var/damage = rand(user.melee_damage_lower, user.melee_damage_upper)
+		if(user.obj_damage)
+			damage = user.obj_damage
 		take_directional_damage(damage, "brute", get_dir(src, user))
 		check_for_internal_damage(list(MECHA_INT_TEMP_CONTROL,MECHA_INT_TANK_BREACH,MECHA_INT_CONTROL_LOST))
 		visible_message("<span class='danger'>[user] [user.attacktext] [src]!</span>")

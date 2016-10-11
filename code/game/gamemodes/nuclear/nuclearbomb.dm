@@ -91,7 +91,7 @@ var/bomb_set
 	if (istype(I, /obj/item/weapon/disk/nuclear))
 		if(!user.drop_item())
 			return
-		I.loc = src
+		I.forceMove(src)
 		auth = I
 		add_fingerprint(user)
 		return
@@ -291,7 +291,7 @@ var/bomb_set
 				. = TRUE
 		if("insert_disk")
 			if(!auth)
-				var/obj/item/I = usr.get_active_hand()
+				var/obj/item/I = usr.get_active_held_item()
 				if(istype(I, /obj/item/weapon/disk/nuclear))
 					usr.drop_item()
 					I.forceMove(src)
@@ -401,6 +401,9 @@ var/bomb_set
 		return
 	. = ..()
 
+/obj/machinery/nuclearbomb/tesla_act(var/power)
+	..()
+	qdel(src)//like the singulo, tesla deletes it. stops it from exploding over and over
 
 #define NUKERANGE 127
 /obj/machinery/nuclearbomb/proc/explode()
@@ -486,11 +489,26 @@ This is here to make the tiles around the station mininuke change when it's arme
 	name = "nuclear authentication disk"
 	desc = "Better keep this safe."
 	icon_state = "nucleardisk"
+	persistence_replacement = /obj/item/weapon/disk/fakenucleardisk
 
 /obj/item/weapon/disk/nuclear/New()
 	..()
 	poi_list |= src
 	START_PROCESSING(SSobj, src)
+
+/obj/item/weapon/disk/nuclear/attackby(obj/item/I, mob/living/user, params)
+	if(istype(I, /obj/item/weapon/claymore/highlander))
+		var/obj/item/weapon/claymore/highlander/H = I
+		if(H.nuke_disk)
+			user << "<span class='notice'>Wait... what?</span>"
+			qdel(H.nuke_disk)
+			H.nuke_disk = null
+			return
+		user.visible_message("<span class='warning'>[user] captures [src]!</span>", "<span class='userdanger'>You've got the disk! Defend it with your life!</span>")
+		loc = H
+		H.nuke_disk = src
+		return 1
+	return ..()
 
 /obj/item/weapon/disk/nuclear/suicide_act(mob/user)
 	user.visible_message("<span class='suicide'>[user] is \
@@ -556,3 +574,8 @@ This is here to make the tiles around the station mininuke change when it's arme
 	log_game("[src] has been destroyed in [COORD(diskturf)]. Moving it to \
 		[COORD(targetturf)].")
 	return QDEL_HINT_LETMELIVE //Cancel destruction unless forced
+
+/obj/item/weapon/disk/fakenucleardisk
+	name = "cheap plastic imitation of the nuclear authentication disk"
+	desc = "Broken dreams and a faint oder of cheese."
+	icon_state = "nucleardisk"

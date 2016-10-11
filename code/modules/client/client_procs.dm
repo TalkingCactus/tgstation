@@ -156,7 +156,7 @@ var/next_external_rsc = 0
 		if (holder)
 			src << "Because you are an admin, you are being allowed to walk past this limitation, But it is still STRONGLY suggested you upgrade"
 		else
-			del(src)
+			qdel(src)
 			return 0
 	else if (byond_version < config.client_warn_version)	//We have words for this client.
 		src << "<span class='danger'><b>Your version of byond may be getting out of date:</b></span>"
@@ -168,11 +168,11 @@ var/next_external_rsc = 0
 	if (connection == "web")
 		if (!config.allowwebclient)
 			src << "Web client is disabled"
-			del(src)
+			qdel(src)
 			return 0
 		if (config.webclientmembersonly && !IsByondMember())
 			src << "Sorry, but the web client is restricted to byond members only."
-			del(src)
+			qdel(src)
 			return 0
 
 	if( (world.address == address || !address) && !host )
@@ -194,7 +194,7 @@ var/next_external_rsc = 0
 			log_access("Failed Login: [key] - New account attempting to connect during panic bunker")
 			message_admins("<span class='adminnotice'>Failed Login: [key] - New account attempting to connect during panic bunker</span>")
 			src << "Sorry but the server is currently not accepting connections from never before seen players."
-			del(src)
+			qdel(src)
 			return 0
 
 		if (config.notify_new_player_age >= 0)
@@ -259,6 +259,8 @@ var/next_external_rsc = 0
 	clients -= src
 	return ..()
 
+/client/Destroy()
+	return QDEL_HINT_HARDDEL_NOW
 
 /client/proc/set_client_age_from_db()
 	if (IsGuestKey(src.key))
@@ -290,7 +292,7 @@ var/next_external_rsc = 0
 	if (!dbcon.IsConnected())
 		return
 
-	var/sql_ckey = sanitizeSQL(src.ckey)
+	var/sql_ckey = sanitizeSQL(ckey)
 
 	var/DBQuery/query_ip = dbcon.NewQuery("SELECT ckey FROM [format_table_name("player")] WHERE ip = '[address]' AND ckey != '[sql_ckey]'")
 	query_ip.Execute()
@@ -304,14 +306,17 @@ var/next_external_rsc = 0
 	while (query_cid.NextRow())
 		related_accounts_cid += "[query_cid.item[1]], "
 
+	var/admin_rank = "Player"
+	if (src.holder && src.holder.rank)
+		admin_rank = src.holder.rank.name
+	else
+		if (check_randomizer())
+			return
+
 	var/watchreason = check_watchlist(sql_ckey)
 	if(watchreason)
 		message_admins("<font color='red'><B>Notice: </B></font><font color='blue'>[key_name_admin(src)] is on the watchlist and has just connected - Reason: [watchreason]</font>")
 		send2irc_adminless_only("Watchlist", "[key_name(src)] is on the watchlist and has just connected - Reason: [watchreason]")
-
-	var/admin_rank = "Player"
-	if (src.holder && src.holder.rank)
-		admin_rank = src.holder.rank.name
 
 	var/sql_ip = sanitizeSQL(src.address)
 	var/sql_computerid = sanitizeSQL(src.computer_id)
@@ -325,6 +330,85 @@ var/next_external_rsc = 0
 	var/serverip = "[world.internet_address]:[world.port]"
 	var/DBQuery/query_accesslog = dbcon.NewQuery("INSERT INTO `[format_table_name("connection_log")]` (`id`,`datetime`,`serverip`,`ckey`,`ip`,`computerid`) VALUES(null,Now(),'[serverip]','[sql_ckey]','[sql_ip]','[sql_computerid]');")
 	query_accesslog.Execute()
+
+/client/proc/check_randomizer()
+	. = FALSE
+	if (!config.check_randomizer)
+		return
+	var/static/cidcheck = list()
+	var/static/cidcheck_failedckeys = list() //to avoid spamming the admins if the same guy keeps trying.
+
+	var/oldcid = cidcheck[ckey]
+	if (oldcid)
+		if (oldcid != computer_id) //IT CHANGED!!!
+			cidcheck -= ckey //so they can try again after removing the cid randomizer.
+
+			src << "<span class='userdanger'>Connection Error:</span>"
+			src << "<span class='danger'>Invalid ComputerID(spoofed). Please remove the ComputerID spoofer from your byond installation and try again.</span>"
+
+			if (!cidcheck_failedckeys[ckey])
+				message_admins("<span class='adminnotice'>[key_name(src)] has been detected as using a cid randomizer. Connection rejected.</span>")
+				send2irc_adminless_only("CidRandomizer", "[key_name(src)] has been detected as using a cid randomizer. Connection rejected.")
+				cidcheck_failedckeys[ckey] = 1
+				note_randomizer_user()
+
+			log_access("Failed Login: [key] [computer_id] [address] - CID randomizer confirmed (oldcid: [oldcid])")
+
+			qdel(src)
+			return TRUE
+		else
+			if (cidcheck_failedckeys[ckey])
+				message_admins("<span class='adminnotice'>[key_name_admin(src)] has been allowed to connect after showing they removed their cid randomizer</span>")
+				send2irc_adminless_only("CidRandomizer", "[key_name(src)] has been allowed to connect after showing they removed their cid randomizer.")
+				cidcheck_failedckeys -= ckey
+			cidcheck -= ckey
+	else
+		var/sql_ckey = sanitizeSQL(ckey)
+		var/DBQuery/query_cidcheck = dbcon.NewQuery("SELECT computerid FROM [format_table_name("player")] WHERE ckey = '[sql_ckey]'")
+		query_cidcheck.Execute()
+
+		var/lastcid
+		if (query_cidcheck.NextRow())
+			lastcid = query_cidcheck.item[1]
+
+		if (computer_id != lastcid)
+			cidcheck[ckey] = computer_id
+			log_access("Failed Login: [key] [computer_id] [address] - CID randomizer check")
+
+			var/url = winget(src, null, "url")
+			//special javascript to make them reconnect under a new window.
+			src << browse("<a id='link' href=byond://[url]>byond://[url]</a><script type='text/javascript'>document.getElementById(\"link\").click();window.location=\"byond://winset?command=.quit\"</script>", "border=0;titlebar=0;size=1x1")
+			winset(src, "reconnectbutton", "is-disable=true") //reconnect keeps the same cid in the randomizer, they could use this button to fake it.
+			sleep(10) //browse is queued, we don't want them to disconnect before getting the browse() command.
+
+			//teeheehee (in case the above method doesn't work, its not 100% reliable.)
+			src << "<pre class=\"system system\">Network connection shutting down due to read error.</pre>"
+			qdel(src)
+			return TRUE
+
+/client/proc/note_randomizer_user()
+	var/const/adminckey = "CID-Error"
+	var/sql_ckey = sanitizeSQL(ckey)
+	//check to see if we noted them in the last day.
+	var/DBQuery/query_get_notes = dbcon.NewQuery("SELECT id FROM [format_table_name("notes")] WHERE ckey = '[sql_ckey]' AND adminckey = '[adminckey]' AND timestamp + INTERVAL 1 DAY < NOW()")
+	if(!query_get_notes.Execute())
+		var/err = query_get_notes.ErrorMsg()
+		log_game("SQL ERROR obtaining id from notes table. Error : \[[err]\]\n")
+		return
+	if (query_get_notes.NextRow())
+		return
+
+	//regardless of above, make sure their last note is not from us, as no point in repeating the same note over and over.
+	query_get_notes = dbcon.NewQuery("SELECT adminckey FROM [format_table_name("notes")] WHERE ckey = '[sql_ckey]' ORDER BY timestamp DESC LIMIT 1")
+	if(!query_get_notes.Execute())
+		var/err = query_get_notes.ErrorMsg()
+		log_game("SQL ERROR obtaining id from notes table. Error : \[[err]\]\n")
+		return
+	if (query_get_notes.NextRow())
+		if (query_get_notes.item[1] == adminckey)
+			return
+	add_note(ckey, "Detected as using a cid randomizer.", null, adminckey, 0, null, 0)
+
 
 /client/proc/check_ip_intel()
 	set waitfor = 0 //we sleep when getting the intel, no need to hold up the client connection while we sleep

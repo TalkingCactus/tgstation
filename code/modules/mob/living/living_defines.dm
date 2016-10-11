@@ -5,6 +5,7 @@
 	sight = 0
 	see_in_dark = 2
 	hud_possible = list(HEALTH_HUD,STATUS_HUD,ANTAG_HUD)
+	pressure_resistance = 10
 
 	//Health and life related vars
 	var/maxHealth = 100 //Maximum health that should be possible.
@@ -68,8 +69,7 @@
 
 	var/stun_absorption = null //converted to a list of stun absorption sources this mob has when one is added
 
-	var/mob/living/mental_dominator //The person controlling the mind of this person, if applicable
-	var/mob/living/mind_control_holder/mind_control_holder //If the mob is being mind controlled, where their old mind is stored (check clock_mobs.dm)
-
 	var/blood_volume = 0 //how much blood the mob has
 	var/obj/effect/proc_holder/ranged_ability //Any ranged ability the mob has, as a click override
+	
+	var/slipping = FALSE

@@ -34,6 +34,8 @@
 	icon_living = "parrot_fly"
 	icon_dead = "parrot_dead"
 	density = 0
+	health = 80
+	maxHealth = 80
 	pass_flags = PASSTABLE | PASSMOB
 
 	speak = list("Hi!","Hello!","Cracker?","BAWWWWK george mellons griffing me!")
@@ -148,6 +150,8 @@
 			if(speech_buffer.len >= 500)
 				speech_buffer -= pick(speech_buffer)
 			speech_buffer |= html_decode(raw_message)
+	if(speaker == src && !client) //If a parrot squawks in the woods and no one is around to hear it, does it make a sound? This code says yes!
+		return message
 	..()
 
 /mob/living/simple_animal/parrot/radio(message, message_mode, list/spans) //literally copied from human/radio(), but there's no other way to do this. at least it's better than it used to be.
@@ -220,7 +224,7 @@
 		//Adding things to inventory
 		else if(href_list["add_inv"])
 			var/add_to = href_list["add_inv"]
-			if(!usr.get_active_hand())
+			if(!usr.get_active_held_item())
 				usr << "<span class='warning'>You have nothing in your hand to put on its [add_to]!</span>"
 				return
 			switch(add_to)
@@ -229,7 +233,7 @@
 						usr << "<span class='warning'>It's already wearing something!</span>"
 						return
 					else
-						var/obj/item/item_to_add = usr.get_active_hand()
+						var/obj/item/item_to_add = usr.get_active_held_item()
 						if(!item_to_add)
 							return
 
@@ -286,7 +290,7 @@
 		parrot_interest = M
 		parrot_state = PARROT_SWOOP //The parrot just got hit, it WILL move, now to pick a direction..
 
-		if(M.health < 50) //Weakened mob? Fight back!
+		if(health > 30) //Let's get in there and squawk it up!
 			parrot_state |= PARROT_ATTACK
 		else
 			parrot_state |= PARROT_FLEE		//Otherwise, fly like a bat out of hell!
@@ -325,8 +329,8 @@
 
 			parrot_interest = user
 			parrot_state = PARROT_SWOOP
-			if (user.health < 50)
-				parrot_state |= PARROT_ATTACK //weakened mob? fight back!
+			if(health > 30) //Let's get in there and squawk it up!
+				parrot_state |= PARROT_ATTACK
 			else
 				parrot_state |= PARROT_FLEE
 			icon_state = "parrot_fly"
@@ -629,8 +633,10 @@
 				item = I
 		else if(iscarbon(AM))
 			var/mob/living/carbon/C = AM
-			if((C.l_hand && C.l_hand.w_class <= 2) || (C.r_hand && C.r_hand.w_class <= 2))
-				item = C
+			for(var/obj/item/I in C.held_items)
+				if(I.w_class <= 2)
+					item = I
+					break
 		if(item)
 			if(!AStar(src, get_turf(item), /turf/proc/Distance_cardinal))
 				item = null
@@ -664,8 +670,9 @@
 
 		if(iscarbon(AM))
 			var/mob/living/carbon/C = AM
-			if(C.l_hand && C.l_hand.w_class <= 2 || C.r_hand && C.r_hand.w_class <= 2)
-				return C
+			for(var/obj/item/I in C.held_items)
+				if(I.w_class <= 2)
+					return C
 	return null
 
 
@@ -715,11 +722,10 @@
 	var/obj/item/stolen_item = null
 
 	for(var/mob/living/carbon/C in view(1,src))
-		if(C.l_hand && C.l_hand.w_class <= 2)
-			stolen_item = C.l_hand
-
-		if(C.r_hand && C.r_hand.w_class <= 2)
-			stolen_item = C.r_hand
+		for(var/obj/item/I in C.held_items)
+			if(I.w_class <= 2)
+				stolen_item = I
+				break
 
 		if(stolen_item)
 			C.unEquip(stolen_item)
@@ -902,7 +908,7 @@
 /mob/living/simple_animal/parrot/Poly/death(gibbed)
 	if(!memory_saved)
 		var/go_ghost = 0
-		if(rounds_survived == longest_survival || rounds_survived == longest_deathstreak)
+		if(rounds_survived == longest_survival || rounds_survived == longest_deathstreak || prob(0.666))
 			go_ghost = 1
 		rounds_survived = min(--rounds_survived,0)
 		if(rounds_survived < longest_deathstreak)
@@ -948,7 +954,26 @@
 	memory_saved = 1 //At this point nothing is saved
 	..()
 
+/mob/living/simple_animal/parrot/Poly/ghost/handle_automated_speech()
+	if(ismob(loc))
+		return
+	..()
+
 /mob/living/simple_animal/parrot/Poly/ghost/handle_automated_movement()
 	if(isliving(parrot_interest))
-		parrot_interest = null
+		if(!ishuman(parrot_interest))
+			parrot_interest = null
+		else if(parrot_state == (PARROT_SWOOP | PARROT_ATTACK) && Adjacent(parrot_interest))
+			walk_to(src, parrot_interest, 0, parrot_speed)
+			Possess(parrot_interest)
 	..()
+
+/mob/living/simple_animal/parrot/Poly/ghost/proc/Possess(mob/living/carbon/human/H)
+	if(!ishuman(H))
+		return
+	var/datum/disease/parrot_possession/P = new
+	P.parrot = src
+	loc = H
+	H.ContractDisease(P)
+	parrot_interest = null
+	H.visible_message("<span class='danger'>[src] dive bombs into [H]'s chest and vanishes!</span>", "<span class='userdanger'>[src] dive bombs into your chest, vanishing! This can't be good!</span>")

@@ -5,6 +5,7 @@
 	icon_living = "stickman"
 	icon_dead = "stickman_dead"
 	icon_gib = "syndicate_gib"
+	gender = MALE
 	speak_chance = 0
 	turns_per_move = 5
 	response_help = "pokes"
@@ -27,6 +28,8 @@
 	faction = list("hostile","stickman")
 	check_friendly_fire = 1
 	status_flags = CANPUSH
+	var/datum/action/boss/wizard_summon_minions/changesummons = /datum/action/boss/wizard_summon_minions/
+	var/summoned_by_wizard = 0
 
 /mob/living/simple_animal/hostile/stickman/ranged
 	ranged = 1
@@ -46,6 +49,12 @@
 	icon_living = "stickdog"
 	icon_dead = "stickdog_dead"
 
-/mob/living/simple_animal/hostile/stickman/New()
+/mob/living/simple_animal/hostile/stickman/New(var/turf/loc, var/wizard_summoned)
 	..()
 	new /obj/effect/overlay/temp/paper_scatter(src)
+	summoned_by_wizard = wizard_summoned
+
+/mob/living/simple_animal/hostile/stickman/death()
+	..()
+	if(summoned_by_wizard == 1)
+		changesummons.summoned_minions --

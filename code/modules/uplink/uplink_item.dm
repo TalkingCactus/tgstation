@@ -44,7 +44,9 @@ var/list/uplink_items = list() // Global list so we only initialize this once.
 	var/category = "item category"
 	var/desc = "item description"
 	var/item = null // Path to the item to spawn.
+	var/refund_path = null // Alternative path for refunds, in case the item purchased isn't what is actually refunded (ie: holoparasites).
 	var/cost = 0
+	var/refund_amount = 0 // specified refund amount in case there needs to be a TC penalty for refunds.
 	var/refundable = FALSE
 	var/surplus = 100 // Chance of being included in the surplus crate.
 	var/list/include_modes = list() // Game modes to allow this item in.
@@ -519,6 +521,7 @@ var/list/uplink_items = list() // Global list so we only initialize this once.
 			deflecting all ranged weapon fire, but you also refuse to use dishonorable ranged weaponry."
 	item = /obj/item/weapon/sleeping_carp_scroll
 	cost = 17
+	surplus = 0
 	exclude_modes = list(/datum/game_mode/nuclear, /datum/game_mode/gang)
 
 /datum/uplink_item/stealthy_weapons/throwingweapons
@@ -797,7 +800,7 @@ var/list/uplink_items = list() // Global list so we only initialize this once.
 	name = "Military Belt"
 	desc = "A robust seven-slot red belt that is capable of holding all manner of tatical equipment."
 	item = /obj/item/weapon/storage/belt/military
-	cost = 3
+	cost = 1
 	exclude_modes = list(/datum/game_mode/nuclear)
 
 /datum/uplink_item/device_tools/medkit
@@ -1109,7 +1112,7 @@ var/list/uplink_items = list() // Global list so we only initialize this once.
 	exclude_modes = list(/datum/game_mode/nuclear, /datum/game_mode/gang)
 
 /datum/uplink_item/badass/surplus/spawn_item(turf/loc, obj/item/device/uplink/U)
-	var/list/uplink_items = get_uplink_items()
+	var/list/uplink_items = get_uplink_items(ticker.mode)
 
 	var/crate_value = 50
 	var/obj/structure/closet/crate/C = new(loc)
@@ -1136,7 +1139,7 @@ var/list/uplink_items = list() // Global list so we only initialize this once.
 	cost = 0
 
 /datum/uplink_item/badass/random/spawn_item(turf/loc, obj/item/device/uplink/U)
-	var/list/uplink_items = get_uplink_items()
+	var/list/uplink_items = get_uplink_items(ticker.mode)
 	var/list/possible_items = list()
 	for(var/category in uplink_items)
 		for(var/item in uplink_items[category])

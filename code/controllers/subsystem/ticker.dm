@@ -31,6 +31,11 @@ var/datum/subsystem/ticker/ticker
 	var/list/syndicate_coalition = list()	//list of traitor-compatible factions
 	var/list/factions = list()				//list of all factions
 	var/list/availablefactions = list()		//list of factions with openings
+	var/list/scripture_states = list(SCRIPTURE_DRIVER = TRUE, \
+	SCRIPTURE_SCRIPT = FALSE, \
+	SCRIPTURE_APPLICATION = FALSE, \
+	SCRIPTURE_REVENANT = FALSE, \
+	SCRIPTURE_JUDGEMENT = FALSE) //list of clockcult scripture states for announcements
 
 	var/delay_end = 0						//if set true, the round will not restart on it's own
 
@@ -49,7 +54,6 @@ var/datum/subsystem/ticker/ticker
 	var/obj/screen/cinematic = null			//used for station explosion cinematic
 
 	var/maprotatechecked = 0
-
 
 /datum/subsystem/ticker/New()
 	NEW_SS_GLOBAL(ticker)
@@ -103,6 +107,7 @@ var/datum/subsystem/ticker/ticker
 			mode.process(wait * 0.1)
 			check_queue()
 			check_maprotate()
+			scripture_states = scripture_unlock_alert(scripture_states)
 
 			if(!mode.explosion_in_progress && mode.check_finished() || force_ending)
 				current_state = GAME_STATE_FINISHED
@@ -437,6 +442,8 @@ var/datum/subsystem/ticker/ticker
 	for(var/i in total_antagonists)
 		log_game("[i]s[total_antagonists[i]].")
 
+	mode.declare_station_goal_completion()
+
 	//Adds the del() log to world.log in a format condensable by the runtime condenser found in tools
 	if(SSgarbage.didntgc.len)
 		var/dellog = ""
@@ -445,6 +452,8 @@ var/datum/subsystem/ticker/ticker
 			dellog += "Failures : [SSgarbage.didntgc[path]] \n"
 		world.log << dellog
 
+	//Collects persistence features
+	SSpersistence.CollectData()
 	return 1
 
 /datum/subsystem/ticker/proc/send_tip_of_the_round()

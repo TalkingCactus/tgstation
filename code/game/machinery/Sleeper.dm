@@ -19,7 +19,7 @@
 	var/controls_inside = FALSE
 	var/list/possible_chems = list(
 		list("epinephrine", "morphine", "salbutamol", "bicaridine", "kelotane"),
-		list("oculine"),
+		list("oculine","inacusiate"),
 		list("antitoxin", "mutadone", "mannitol", "pen_acid"),
 		list("omnizine")
 	)
@@ -89,14 +89,6 @@
 		open_machine()
 	..(severity)
 
-/obj/machinery/sleeper/blob_act(obj/effect/blob/B)
-	if(prob(75))
-		var/turf/T = get_turf(src)
-		for(var/atom/movable/A in src)
-			A.forceMove(T)
-			A.blob_act(B)
-		qdel(src)
-
 /obj/machinery/sleeper/MouseDrop_T(mob/target, mob/user)
 	if(user.stat || user.lying || !Adjacent(user) || !user.Adjacent(target) || !iscarbon(target) || !user.IsAdvancedToolUser())
 		return
@@ -143,7 +135,7 @@
 		data["occupant"]["stat"] = occupant.stat
 		data["occupant"]["health"] = occupant.health
 		data["occupant"]["maxHealth"] = occupant.maxHealth
-		data["occupant"]["minHealth"] = config.health_threshold_dead
+		data["occupant"]["minHealth"] = HEALTH_THRESHOLD_DEAD
 		data["occupant"]["bruteLoss"] = occupant.getBruteLoss()
 		data["occupant"]["oxyLoss"] = occupant.getOxyLoss()
 		data["occupant"]["toxLoss"] = occupant.getToxLoss()

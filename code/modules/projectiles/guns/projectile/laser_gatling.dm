@@ -69,11 +69,7 @@
 				var/obj/screen/inventory/hand/H = over_object
 				if(!M.unEquip(src))
 					return
-				switch(H.slot_id)
-					if(slot_r_hand)
-						M.put_in_r_hand(src)
-					if(slot_l_hand)
-						M.put_in_l_hand(src)
+				M.put_in_hand(src, H.held_index)
 
 
 /obj/item/weapon/minigunpack/update_icon()
@@ -124,11 +120,11 @@
 	else
 		qdel(src)
 
-/obj/item/weapon/gun/projectile/minigun/shoot_live_shot(mob/living/user as mob|obj, pointblank = 0, mob/pbtarget = null, message = 1)
+/obj/item/weapon/gun/projectile/minigun/process_fire(atom/target as mob|obj|turf, mob/living/user as mob|obj, message = 1, params, zone_override)
 	if(ammo_pack)
 		if(ammo_pack.overheat < ammo_pack.overheat_max)
-			. = ..()
-			ammo_pack.overheat++
+			ammo_pack.overheat += burst_size
+			..()
 		else
 			user << "The gun's heat sensor locked the trigger to prevent lens damage."
 
@@ -141,9 +137,9 @@
 	if(!ammo_pack)
 		if(istype(loc,/obj/item/weapon/minigunpack)) //We should spawn inside a ammo pack so let's use that one.
 			ammo_pack = loc
+			..()
 		else
 			qdel(src)//No pack, no gun
-	..()
 
 /obj/item/weapon/gun/projectile/minigun/dropped(mob/living/user)
 	ammo_pack.attach_gun(user)

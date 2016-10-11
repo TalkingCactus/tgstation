@@ -25,15 +25,15 @@
 			take_damage(rand(5,10), BRUTE, 0)
 
 /obj/structure/grille/ratvar_act()
-	if(prob(20))
-		if(destroyed)
-			new /obj/structure/grille/ratvar/broken(src.loc)
-		else
-			new /obj/structure/grille/ratvar(src.loc)
-		qdel(src)
+	if(destroyed)
+		new /obj/structure/grille/ratvar/broken(src.loc)
+	else
+		new /obj/structure/grille/ratvar(src.loc)
+	qdel(src)
 
 /obj/structure/grille/blob_act(obj/effect/blob/B)
-	qdel(src)
+	if(!destroyed)
+		Break()
 
 /obj/structure/grille/Bumped(atom/user)
 	if(ismob(user))
@@ -79,13 +79,16 @@
 
 /obj/structure/grille/attack_animal(var/mob/living/simple_animal/M)
 	M.changeNext_move(CLICK_CD_MELEE)
-	if(M.melee_damage_upper == 0 || (M.melee_damage_type != BRUTE && M.melee_damage_type != BURN))
+	if(!M.melee_damage_upper && !M.obj_damage || (M.melee_damage_type != BRUTE && M.melee_damage_type != BURN))
 		return
 	M.do_attack_animation(src)
 	M.visible_message("<span class='warning'>[M] smashes against [src].</span>", \
 					  "<span class='danger'>You smash against [src].</span>", \
 					  "<span class='italics'>You hear twisting metal.</span>")
-	take_damage(M.melee_damage_upper, M.melee_damage_type)
+	if(M.obj_damage)
+		take_damage(M.obj_damage, M.melee_damage_type)
+	else
+		take_damage(rand(M.melee_damage_lower,M.melee_damage_upper), M.melee_damage_type)
 
 
 /obj/structure/grille/mech_melee_attack(obj/mecha/M)
@@ -261,8 +264,17 @@
 			var/turf/T = get_turf(src)
 			var/obj/structure/cable/C = T.get_cable_node()
 			if(C)
-				playsound(src.loc, 'sound/magic/LightningShock.ogg', 100, 1, extrarange = 5)
-				tesla_zap(src, 3, C.powernet.avail * 0.08) //ZAP for 1/5000 of the amount of power, which is from 15-25 with 200000W
+				var/mob/living/closest_mob
+				for(var/A in oview(src, 3))
+					if(istype(A, /mob/living))
+						var/dist = get_dist(src, A)
+						if(dist <= 3)
+							closest_mob = A
+				if(closest_mob)
+					var/shock_damage = C.powernet.avail * 0.0002//setting shock damage for later. equals 1/5000 the power in the grid
+					src.Beam(closest_mob, icon_state="lightning[rand(1,12)]", time=5)
+					closest_mob.electrocute_act(shock_damage, src, 1)//ZAP, damage should be about 40 with 200000W
+					playsound(src.loc, 'sound/magic/LightningShock.ogg', 100, 1, extrarange = 5)
 	take_damage(tforce)
 
 /obj/structure/grille/storage_contents_dump_act(obj/item/weapon/storage/src_object, mob/user)

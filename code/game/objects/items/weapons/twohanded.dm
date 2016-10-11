@@ -49,7 +49,7 @@
 		user << "<span class='notice'>You are now carrying the [name] with one hand.</span>"
 	if(unwieldsound)
 		playsound(loc, unwieldsound, 50, 1)
-	var/obj/item/weapon/twohanded/offhand/O = user.get_inactive_hand()
+	var/obj/item/weapon/twohanded/offhand/O = user.get_inactive_held_item()
 	if(O && istype(O))
 		O.unwield()
 	return
@@ -60,7 +60,7 @@
 	if(istype(user,/mob/living/carbon/monkey) )
 		user << "<span class='warning'>It's too heavy for you to wield fully.</span>"
 		return
-	if(user.get_inactive_hand())
+	if(user.get_inactive_held_item())
 		user << "<span class='warning'>You need your other hand to be empty!</span>"
 		return
 	if(user.get_num_arms() < 2)
@@ -83,18 +83,11 @@
 	user.put_in_inactive_hand(O)
 	return
 
-/obj/item/weapon/twohanded/mob_can_equip(mob/M, slot)
-	//Cannot equip wielded items.
-	if(wielded)
-		M << "<span class='warning'>Unwield the [name] first!</span>"
-		return 0
-	return ..()
-
 /obj/item/weapon/twohanded/dropped(mob/user)
 	..()
 	//handles unwielding a twohanded weapon when dropped as well as clearing up the offhand
 	if(user)
-		var/obj/item/weapon/twohanded/O = user.get_inactive_hand()
+		var/obj/item/weapon/twohanded/O = user.get_inactive_held_item()
 		if(istype(O))
 			O.unwield(user)
 	return	unwield(user)
@@ -108,6 +101,16 @@
 		unwield(user)
 	else //Trying to wield it
 		wield(user)
+
+/obj/item/weapon/twohanded/equip_to_best_slot(mob/M)
+	if(..())
+		unwield(M)
+		return
+
+/obj/item/weapon/twohanded/equipped(mob/user, slot)
+	..()
+	if(!user.is_holding(src) && wielded)
+		unwield(user)
 
 ///////////OFFHAND///////////////
 /obj/item/weapon/twohanded/offhand
@@ -130,24 +133,29 @@
 /obj/item/weapon/twohanded/required/attack_self()
 	return
 
-/obj/item/weapon/twohanded/required/mob_can_equip(mob/M, slot)
-	if(wielded)
+/obj/item/weapon/twohanded/required/mob_can_equip(mob/M, mob/equipper, slot, disable_warning = 0)
+	if(wielded && !slot_flags)
 		M << "<span class='warning'>\The [src] is too cumbersome to carry with anything but your hands!</span>"
 		return 0
 	return ..()
 
 /obj/item/weapon/twohanded/required/attack_hand(mob/user)//Can't even pick it up without both hands empty
-	var/obj/item/weapon/twohanded/required/H = user.get_inactive_hand()
+	var/obj/item/weapon/twohanded/required/H = user.get_inactive_held_item()
 	if(get_dist(src,user) > 1)
 		return 0
 	if(H != null)
 		user << "<span class='notice'>\The [src] is too cumbersome to carry in one hand!</span>"
 		return
-	wield(user)
+	if(src.loc != user)
+		wield(user)
 	..()
 
-
-/obj/item/weapon/twohanded/
+/obj/item/weapon/twohanded/required/equipped(mob/user, slot)
+	..()
+	if(slot == slot_hands)
+		wield(user)
+	else
+		unwield(user)
 
 /*
  * Fireaxe
@@ -248,7 +256,7 @@
 /obj/item/weapon/twohanded/dualsaber/proc/impale(mob/living/user)
 	user << "<span class='warning'>You twirl around a bit before losing your balance and impaling yourself on \the [src].</span>"
 	if (force_wielded)
-		user.take_organ_damage(20,25)
+		user.take_bodypart_damage(20,25)
 	else
 		user.adjustStaminaLoss(25)
 
@@ -400,6 +408,7 @@
 	icon_state = "chainsaw_off"
 	flags = CONDUCT
 	force = 13
+	var/force_on = 21
 	w_class = 5
 	throwforce = 13
 	throw_speed = 2
@@ -415,8 +424,8 @@
 /obj/item/weapon/twohanded/required/chainsaw/attack_self(mob/user)
 	on = !on
 	user << "As you pull the starting cord dangling from \the [src], [on ? "it begins to whirr." : "the chain stops moving."]"
-	force = on ? 21 : 13
-	throwforce = on ? 21 : 13
+	force = on ? force_on : initial(force)
+	throwforce = on ? force_on : initial(force)
 	icon_state = "chainsaw_[on ? "on" : "off"]"
 
 	if(hitsound == "swing_hit")
@@ -424,9 +433,8 @@
 	else
 		hitsound = "swing_hit"
 
-	if(src == user.get_active_hand()) //update inhands
-		user.update_inv_l_hand()
-		user.update_inv_r_hand()
+	if(src == user.get_active_held_item()) //update inhands
+		user.update_inv_hands()
 	for(var/X in actions)
 		var/datum/action/A = X
 		A.UpdateButtonIcon()
@@ -435,11 +443,18 @@
 	if(wielded)
 		. = ..()
 
-
 /obj/item/weapon/twohanded/required/chainsaw/doomslayer
 	name = "OOOH BABY"
 	desc = "<span class='warning'>VRRRRRRR!!!</span>"
 	armour_penetration = 100
+	force_on = 30
+
+/obj/item/weapon/twohanded/required/chainsaw/doomslayer/hit_reaction(mob/living/carbon/human/owner, attack_text, final_block_chance, damage, attack_type)
+	if(attack_type == PROJECTILE_ATTACK)
+		owner.visible_message("<span class='danger'>Ranged attacks just make [owner] angrier!</span>")
+		playsound(src, pick("sound/weapons/bulletflyby.ogg","sound/weapons/bulletflyby2.ogg","sound/weapons/bulletflyby3.ogg"), 75, 1)
+		return 1
+	return 0
 
 //GREY TIDE
 /obj/item/weapon/twohanded/spear/grey_tide

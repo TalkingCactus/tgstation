@@ -27,7 +27,10 @@
 	button_icon_state = "hierophant"
 	background_icon_state = "bg_clock"
 	check_flags = AB_CHECK_RESTRAINED|AB_CHECK_STUNNED|AB_CHECK_CONSCIOUS
+	buttontooltipstyle = "clockcult"
 	var/title = "Servant"
+	var/span_for_name = "heavy_brass"
+	var/span_for_message = "brass"
 
 /datum/action/innate/hierophant/IsAvailable()
 	if(!is_servant_of_ratvar(owner))
@@ -39,17 +42,18 @@
 	if(!input || !IsAvailable())
 		return
 
-	titled_hierophant_message(owner, input, "heavy_brass", "brass", title)
+	titled_hierophant_message(owner, input, span_for_name, span_for_message, title)
 
-//Function Call action: Calls forth a Ratvarian spear once every 5 minutes
+//Function Call action: Calls forth a Ratvarian spear once every 3 minutes
 /datum/action/innate/function_call
 	name = "Function Call"
 	desc = "Allows you to summon a Ratvarian spear to fight enemies."
 	button_icon_state = "ratvarian_spear"
 	background_icon_state = "bg_clock"
 	check_flags = AB_CHECK_RESTRAINED|AB_CHECK_STUNNED|AB_CHECK_CONSCIOUS
+	buttontooltipstyle = "clockcult"
 	var/cooldown = 0
-	var/base_cooldown = 3000
+	var/base_cooldown = 1800
 
 /datum/action/innate/function_call/IsAvailable()
 	if(!is_servant_of_ratvar(owner) || cooldown > world.time)
@@ -57,7 +61,7 @@
 	return ..()
 
 /datum/action/innate/function_call/Activate()
-	if(owner.l_hand && owner.r_hand)
+	if(!owner.get_empty_held_indexes())
 		usr << "<span class='warning'>You need an empty to hand to call forth your spear!</span>"
 		return 0
 	owner.visible_message("<span class='warning'>A strange spear materializes in [owner]'s hands!</span>", "<span class='brass'>You call forth your spear!</span>")
@@ -65,7 +69,7 @@
 	owner.put_in_hands(R)
 	if(!ratvar_awakens)
 		owner << "<span class='warning'>Your spear begins to break down in this plane of existence. You can't use it for long!</span>"
-		addtimer(R, "break_spear", 3000, FALSE)
+		addtimer(R, "break_spear", base_cooldown, FALSE)
 	cooldown = base_cooldown + world.time
 	owner.update_action_buttons_icon()
 	addtimer(src, "update_actions", base_cooldown, FALSE)
@@ -81,7 +85,7 @@
 	var/list/teleportnames = list()
 	var/list/duplicatenamecount = list()
 
-	for(var/obj/structure/clockwork/powered/clockwork_obelisk/O in all_clockwork_objects)
+	for(var/obj/structure/destructible/clockwork/powered/clockwork_obelisk/O in all_clockwork_objects)
 		if(!O.Adjacent(invoker) && O != src && (O.z <= ZLEVEL_SPACEMAX)) //don't list obelisks that we're next to
 			var/area/A = get_area(O)
 			var/locname = initial(A.name)
@@ -110,15 +114,15 @@
 		return 0
 	var/input_target_key = input(invoker, "Choose a target to form a rift to.", "Spatial Gateway") as null|anything in possible_targets
 	var/atom/movable/target = possible_targets[input_target_key]
-	if(!src || !target || !invoker || !invoker.canUseTopic(src, BE_CLOSE) || !is_servant_of_ratvar(invoker) || (istype(src, /obj/item) && invoker.get_active_hand() != src))
+	if(!src || !target || !invoker || !invoker.canUseTopic(src, BE_CLOSE) || !is_servant_of_ratvar(invoker) || (istype(src, /obj/item) && invoker.get_active_held_item() != src))
 		return 0 //if any of the involved things no longer exist, the invoker is stunned, too far away to use the object, or does not serve ratvar, or if the object is an item and not in the mob's active hand, fail
-	var/istargetobelisk = istype(target, /obj/structure/clockwork/powered/clockwork_obelisk)
+	var/istargetobelisk = istype(target, /obj/structure/destructible/clockwork/powered/clockwork_obelisk)
 	if(istargetobelisk)
 		gateway_uses *= 2
 		time_duration *= 2
 	invoker.visible_message("<span class='warning'>The air in front of [invoker] ripples before suddenly tearing open!</span>", \
 	"<span class='brass'>With a word, you rip open a [two_way ? "two-way":"one-way"] rift to [input_target_key]. It will last for [time_duration / 10] seconds and has [gateway_uses] use[gateway_uses > 1 ? "s" : ""].</span>")
-	var/obj/effect/clockwork/spatial_gateway/S1 = new(istype(src, /obj/structure/clockwork/powered/clockwork_obelisk) ? get_turf(src) : get_step(get_turf(invoker), invoker.dir))
+	var/obj/effect/clockwork/spatial_gateway/S1 = new(istype(src, /obj/structure/destructible/clockwork/powered/clockwork_obelisk) ? get_turf(src) : get_step(get_turf(invoker), invoker.dir))
 	var/obj/effect/clockwork/spatial_gateway/S2 = new(istargetobelisk ? get_turf(target) : get_step(get_turf(target), target.dir))
 
 	//Set up the portals now that they've spawned
@@ -126,48 +130,33 @@
 	S2.visible_message("<span class='warning'>The air in front of [target] ripples before suddenly tearing open!</span>")
 	return 1
 
-/proc/scripture_unlock_check(scripture_tier) //check if the selected scripture tier is unlocked
+/proc/scripture_unlock_check() //returns a list of scriptures and if they're unlocked or not
 	var/servants = 0
 	var/unconverted_ai_exists = FALSE
 	for(var/mob/living/M in living_mob_list)
 		if(is_servant_of_ratvar(M) && (ishuman(M) || issilicon(M)))
 			servants++
-	for(var/mob/living/silicon/ai/ai in living_mob_list)
-		if(!is_servant_of_ratvar(ai) && ai.client)
+		else if(isAI(M))
 			unconverted_ai_exists = TRUE
-	switch(scripture_tier)
-		if(SCRIPTURE_DRIVER)
-			return 1
-		if(SCRIPTURE_SCRIPT)
-			if(servants >= 5 && clockwork_caches)
-				return 1 //5 or more non-brain servants and any number of clockwork caches
-		if(SCRIPTURE_APPLICATION)
-			if(servants >= 8 && clockwork_caches >= 3 && clockwork_construction_value >= 100)
-				return 1 //8 or more non-brain servants, 3+ clockwork caches, and at least 100 CV
-		if(SCRIPTURE_REVENANT)
-			if(servants >= 10 && clockwork_caches >= 4 && clockwork_construction_value >= 200)
-				return 1 //10 or more non-brain servants, 4+ clockwork caches, and at least 200 CV
-		if(SCRIPTURE_JUDGEMENT)
-			if(servants >= 12 && clockwork_caches >= 5 && clockwork_construction_value >= 300 && !unconverted_ai_exists)
-				return 1 //12 or more non-brain servants, 5+ clockwork caches, at least 300 CV, and there are no living, non-servant ais
-	return 0
+	. = list(SCRIPTURE_DRIVER = TRUE, SCRIPTURE_SCRIPT = FALSE, SCRIPTURE_APPLICATION = FALSE, SCRIPTURE_REVENANT = FALSE, SCRIPTURE_JUDGEMENT = FALSE)
+	//Drivers: always unlocked
+	.[SCRIPTURE_SCRIPT] = (servants >= 5 && clockwork_caches >= 1)
+	//Script: 5 or more non-brain servants and 1+ clockwork caches
+	.[SCRIPTURE_APPLICATION] = (servants >= 8 && clockwork_caches >= 3 && clockwork_construction_value >= 100)
+	//Application: 8 or more non-brain servants, 3+ clockwork caches, and at least 100 CV
+	.[SCRIPTURE_REVENANT] = (servants >= 10 && clockwork_caches >= 4 && clockwork_construction_value >= 200)
+	//Revenant: 10 or more non-brain servants, 4+ clockwork caches, and at least 200 CV
+	.[SCRIPTURE_JUDGEMENT] = (servants >= 12 && clockwork_caches >= 5 && clockwork_construction_value >= 300 && !unconverted_ai_exists)
+	//Judgement: 12 or more non-brain servants, 5+ clockwork caches, at least 300 CV, and there are no living, non-servant ais
 
 /proc/scripture_unlock_alert(list/previous_states) //reports to servants when scripture is locked or unlocked
-	var/list/states = get_scripture_states()
-	for(var/i in states)
-		if(states[i] != previous_states[i])
-			hierophant_message("<span class='large_brass'><i>Hierophant Network:</i> <b>[i] Scripture has been [states[i] ? "un":""]locked.</b></span>")
-
-/proc/get_scripture_states() //returns the current unlock states of each unlockable scripture tier
-	. = list("Script" = scripture_unlock_check(SCRIPTURE_SCRIPT), \
-	"Application" = scripture_unlock_check(SCRIPTURE_APPLICATION), \
-	"Revenant" = scripture_unlock_check(SCRIPTURE_REVENANT), \
-	"Judgement" = scripture_unlock_check(SCRIPTURE_JUDGEMENT))
+	. = scripture_unlock_check()
+	for(var/i in .)
+		if(.[i] != previous_states[i])
+			hierophant_message("<span class='large_brass'><i>Hierophant Network:</i> <b>[i] Scripture has been [.[i] ? "un":""]locked.</b></span>")
 
 /proc/change_construction_value(amount)
-	var/list/scripture_states = get_scripture_states()
 	clockwork_construction_value += amount
-	scripture_unlock_alert(scripture_states)
 
 /proc/get_component_name(id) //returns a component name from a component id
 	switch(id)
@@ -222,18 +211,18 @@
 		clockwork_component_cache[component_to_generate]++
 
 /proc/get_weighted_component_id(obj/item/clockwork/slab/storage_slab) //returns a chosen component id based on the lowest amount of that component
+	. = list()
 	if(storage_slab)
-		return pickweight(list("belligerent_eye" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*(clockwork_component_cache["belligerent_eye"] + storage_slab.stored_components["belligerent_eye"]), 1), \
-			"vanguard_cogwheel" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*(clockwork_component_cache["vanguard_cogwheel"] + storage_slab.stored_components["vanguard_cogwheel"]), 1), \
-			"guvax_capacitor" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*(clockwork_component_cache["guvax_capacitor"] + storage_slab.stored_components["guvax_capacitor"]), 1), \
-			"replicant_alloy" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*(clockwork_component_cache["replicant_alloy"] + storage_slab.stored_components["replicant_alloy"]), 1), \
-			"hierophant_ansible" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*(clockwork_component_cache["hierophant_ansible"] + storage_slab.stored_components["hierophant_ansible"]), 1)))
-
-	return pickweight(list("belligerent_eye" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*clockwork_component_cache["belligerent_eye"], 1), \
-		"vanguard_cogwheel" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*clockwork_component_cache["vanguard_cogwheel"], 1), \
-		"guvax_capacitor" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*clockwork_component_cache["guvax_capacitor"], 1), \
-		"replicant_alloy" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*clockwork_component_cache["replicant_alloy"], 1), \
-		"hierophant_ansible" = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*clockwork_component_cache["hierophant_ansible"], 1)))
+		if(clockwork_caches)
+			for(var/i in clockwork_component_cache)
+				.[i] = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*(clockwork_component_cache[i] + storage_slab.stored_components[i]), 1)
+		else
+			for(var/i in clockwork_component_cache)
+				.[i] = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*storage_slab.stored_components[i], 1)
+	else
+		for(var/i in clockwork_component_cache)
+			.[i] = max(MAX_COMPONENTS_BEFORE_RAND - LOWER_PROB_PER_COMPONENT*clockwork_component_cache[i], 1)
+	. = pickweight(.)
 
 /proc/clockwork_say(atom/movable/AM, message, whisper=FALSE)
 	// When servants invoke ratvar's power, they speak in ways that non
@@ -256,7 +245,7 @@
 
 /proc/cache_check(mob/M)
 	if(!clockwork_caches)
-		M.throw_alert("nocache", /obj/screen/alert/nocache)
+		M.throw_alert("nocache", /obj/screen/alert/clockwork/nocache)
 	else
 		M.clear_alert("nocache")
 

@@ -94,20 +94,10 @@
 		var/mob/M = src.loc
 		if(istype(over_object, /obj/screen/inventory/hand))
 			var/obj/screen/inventory/hand/H = over_object
+			if(!M.unEquip(src))
+				return
+			M.put_in_hand(src, H.held_index)
 
-			switch(H.slot_id)
-				if(slot_r_hand)
-					if(M.r_hand)
-						return
-					if(!M.unEquip(src))
-						return
-					M.put_in_r_hand(src)
-				if(slot_l_hand)
-					if(M.l_hand)
-						return
-					if(!M.unEquip(src))
-						return
-					M.put_in_l_hand(src)
 
 /obj/item/weapon/defibrillator/attackby(obj/item/weapon/W, mob/user, params)
 	if(W == paddles)
@@ -334,7 +324,7 @@
 	if(!req_defib)
 		return ..()
 	if(user)
-		var/obj/item/weapon/twohanded/offhand/O = user.get_inactive_hand()
+		var/obj/item/weapon/twohanded/offhand/O = user.get_inactive_held_item()
 		if(istype(O))
 			O.unwield()
 		user << "<span class='notice'>The paddles snap back into the main unit.</span>"
@@ -354,7 +344,7 @@
 		return 1
 
 /obj/item/weapon/twohanded/shockpaddles/attack(mob/M, mob/user)
-	var/halfwaycritdeath = (config.health_threshold_crit + config.health_threshold_dead) / 2
+	var/halfwaycritdeath = (HEALTH_THRESHOLD_CRIT + HEALTH_THRESHOLD_DEAD) / 2
 
 	if(busy)
 		return
@@ -555,6 +545,11 @@
 				H.heart_attack = 0
 				user.visible_message("<span class='notice'>[req_defib ? "[defib]" : "[src]"] pings: Patient's heart is now beating again.</span>")
 				playsound(get_turf(src), 'sound/machines/defib_zap.ogg', 50, 1, -1)
+
+			else if (!H.getorgan(/obj/item/organ/heart))
+				user.visible_message("<span class='warning'>[req_defib ? "[defib]" : "[src]"] buzzes: Patient's heart is missing. Operation aborted.</span>")
+				playsound(get_turf(src), 'sound/machines/defib_failed.ogg', 50, 0)
+
 			else
 				user.visible_message("<span class='warning'>[req_defib ? "[defib]" : "[src]"] buzzes: Patient is not in a valid state. Operation aborted.</span>")
 				playsound(get_turf(src), 'sound/machines/defib_failed.ogg', 50, 0)

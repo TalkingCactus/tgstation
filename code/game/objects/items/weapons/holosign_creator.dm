@@ -140,7 +140,7 @@
 	qdel(src)
 
 /obj/effect/overlay/holograph/attack_animal(mob/living/simple_animal/M)
-	if(!M.melee_damage_upper)
+	if(!M.melee_damage_upper && !M.obj_damage)
 		return
 	attack_generic(5, M)
 
@@ -231,7 +231,7 @@
 	density = 1
 	holo_integrity = 1
 
-/obj/effect/overlay/holograph/barrier/CanPass()
+/obj/effect/overlay/holograph/barrier/cyborg/CanPass()
 	return 0
 
 /obj/effect/overlay/holograph/barrier/cyborg/hacked
