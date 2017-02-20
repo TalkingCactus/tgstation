@@ -17,7 +17,7 @@
 	desc = "Pointy."
 	icon_state = "fork"
 	force = 5
-	w_class = 1
+	w_class = WEIGHT_CLASS_TINY
 	throwforce = 0
 	throw_speed = 3
 	throw_range = 5
@@ -56,7 +56,7 @@
 	desc = "A general purpose Chef's Knife made by SpaceCook Incorporated. Guaranteed to stay sharp for years to come."
 	flags = CONDUCT
 	force = 10
-	w_class = 2
+	w_class = WEIGHT_CLASS_SMALL
 	throwforce = 10
 	hitsound = 'sound/weapons/bladeslice.ogg'
 	throw_speed = 3
@@ -75,9 +75,9 @@
 		return ..()
 
 /obj/item/weapon/kitchen/knife/suicide_act(mob/user)
-	user.visible_message(pick("<span class='suicide'>[user] is slitting \his wrists with the [src.name]! It looks like \he's trying to commit suicide.</span>", \
-						"<span class='suicide'>[user] is slitting \his throat with the [src.name]! It looks like \he's trying to commit suicide.</span>", \
-						"<span class='suicide'>[user] is slitting \his stomach open with the [src.name]! It looks like \he's trying to commit seppuku.</span>"))
+	user.visible_message(pick("<span class='suicide'>[user] is slitting [user.p_their()] wrists with the [src.name]! It looks like [user.p_theyre()] trying to commit suicide.</span>", \
+						"<span class='suicide'>[user] is slitting [user.p_their()] throat with the [src.name]! It looks like [user.p_theyre()] trying to commit suicide.</span>", \
+						"<span class='suicide'>[user] is slitting [user.p_their()] stomach open with the [src.name]! It looks like [user.p_theyre()] trying to commit seppuku.</span>"))
 	return (BRUTELOSS)
 
 /obj/item/weapon/kitchen/knife/ritual
@@ -85,7 +85,7 @@
 	desc = "The unearthly energies that once powered this blade are now dormant."
 	icon = 'icons/obj/wizard.dmi'
 	icon_state = "render"
-	w_class = 3
+	w_class = WEIGHT_CLASS_NORMAL
 
 /obj/item/weapon/kitchen/knife/butcher
 	name = "butcher's cleaver"
@@ -96,7 +96,7 @@
 	throwforce = 10
 	materials = list(MAT_METAL=18000)
 	attack_verb = list("cleaved", "slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
-	w_class = 3
+	w_class = WEIGHT_CLASS_NORMAL
 
 /obj/item/weapon/kitchen/knife/combat
 	name = "combat knife"
@@ -152,7 +152,7 @@
 	throwforce = 5
 	throw_speed = 3
 	throw_range = 7
-	w_class = 3
+	w_class = WEIGHT_CLASS_NORMAL
 	attack_verb = list("bashed", "battered", "bludgeoned", "thrashed", "whacked")
 
 /* Trays  moved to /obj/item/weapon/storage/bag */

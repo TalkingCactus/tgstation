@@ -4,7 +4,7 @@
 	zone = "r_arm"
 	slot = "r_arm_device"
 	icon_state = "implant-toolkit"
-	w_class = 3
+	w_class = WEIGHT_CLASS_NORMAL
 	actions_types = list(/datum/action/item_action/organ_action/toggle)
 
 	var/list/items_list = list()
@@ -64,7 +64,7 @@
 	if(!holder || (holder in src))
 		return
 
-	owner.visible_message("<span class='notice'>[owner] retracts [holder] back into \his [zone == "r_arm" ? "right" : "left"] arm.</span>",
+	owner.visible_message("<span class='notice'>[owner] retracts [holder] back into [owner.p_their()] [zone == "r_arm" ? "right" : "left"] arm.</span>",
 		"<span class='notice'>[holder] snaps back into your [zone == "r_arm" ? "right" : "left"] arm.</span>",
 		"<span class='italics'>You hear a short mechanical noise.</span>")
 
@@ -72,8 +72,7 @@
 		var/obj/item/device/assembly/flash/F = holder
 		F.SetLuminosity(0)
 
-	owner.unEquip(holder, 1)
-	holder.forceMove(src)
+	owner.transferItemToLoc(holder, src, TRUE)
 	holder = null
 	playsound(get_turf(owner), 'sound/mecha/mechmove03.ogg', 50, 1)
 
@@ -86,7 +85,7 @@
 	holder.flags |= NODROP
 	holder.resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	holder.slot_flags = null
-	holder.w_class = 5
+	holder.w_class = WEIGHT_CLASS_HUGE
 	holder.materials = null
 
 	if(istype(holder, /obj/item/device/assembly/flash/armimplant))
@@ -96,7 +95,7 @@
 	var/obj/item/arm_item = owner.get_active_held_item()
 
 	if(arm_item)
-		if(!owner.unEquip(arm_item))
+		if(!owner.dropItemToGround(arm_item))
 			owner << "<span class='warning'>Your [arm_item] interferes with [src]!</span>"
 			return
 		else
@@ -110,7 +109,7 @@
 	// Activate the hand that now holds our item.
 	owner.swap_hand(result)//... or the 1st hand if the index gets lost somehow
 
-	owner.visible_message("<span class='notice'>[owner] extends [holder] from \his [zone == "r_arm" ? "right" : "left"] arm.</span>",
+	owner.visible_message("<span class='notice'>[owner] extends [holder] from [owner.p_their()] [zone == "r_arm" ? "right" : "left"] arm.</span>",
 		"<span class='notice'>You extend [holder] from your [zone == "r_arm" ? "right" : "left"] arm.</span>",
 		"<span class='italics'>You hear a short mechanical noise.</span>")
 	playsound(get_turf(owner), 'sound/mecha/mechmove03.ogg', 50, 1)
@@ -167,7 +166,7 @@
 	desc = "A variant of the arm cannon implant that fires electrodes and disabler shots. The cannon emerges from the subject's arm and remains inside when not in use."
 	icon_state = "arm_taser"
 	origin_tech = "materials=5;combat=5;biotech=4;powerstorage=4"
-	holder = /obj/item/weapon/gun/energy/gun/advtaser/mounted
+	holder = /obj/item/weapon/gun/energy/e_gun/advtaser/mounted
 
 /obj/item/organ/cyberimp/arm/gun/taser/l
 	zone = "l_arm"
@@ -193,17 +192,20 @@
 /obj/item/organ/cyberimp/arm/esword
 	name = "arm-mounted energy blade"
 	desc = "An illegal, and highly dangerous cybernetic implant that can project a deadly blade of concentrated enregy."
-	contents = newlist(/obj/item/weapon/melee/energy/blade)
+	contents = newlist(/obj/item/weapon/melee/energy/blade/hardlight)
+	origin_tech = "materials=4;combat=5;biotech=3;powerstorage=2;syndicate=5"
 
 /obj/item/organ/cyberimp/arm/medibeam
 	name = "integrated medical beamgun"
 	desc = "A cybernetic implant that allows the user to project a healing beam from their hand."
 	contents = newlist(/obj/item/weapon/gun/medbeam)
+	origin_tech = "materials=5;combat=2;biotech=5;powerstorage=4;syndicate=1"
 
 /obj/item/organ/cyberimp/arm/flash
 	name = "integrated high-intensity photon projector" //Why not
 	desc = "An integrated projector mounted onto a user's arm, that is able to be used as a powerful flash."
 	contents = newlist(/obj/item/device/assembly/flash/armimplant)
+	origin_tech = "materials=4;combat=3;biotech=4;magnets=4;powerstorage=3"
 
 /obj/item/organ/cyberimp/arm/flash/New()
 	..()
@@ -215,11 +217,13 @@
 	name = "arm electrification implant"
 	desc = "An illegal combat implant that allows the user to administer disabling shocks from their arm."
 	contents = newlist(/obj/item/borg/stun)
+	origin_tech = "materials=3;combat=5;biotech=4;powerstorage=4;syndicate=3"
 
 /obj/item/organ/cyberimp/arm/combat
 	name = "combat cybernetics implant"
 	desc = "A powerful cybernetic implant that contains combat modules built into the user's arm"
-	contents = newlist(/obj/item/weapon/melee/energy/blade, /obj/item/weapon/gun/medbeam, /obj/item/borg/stun, /obj/item/device/assembly/flash/armimplant)
+	contents = newlist(/obj/item/weapon/melee/energy/blade/hardlight, /obj/item/weapon/gun/medbeam, /obj/item/borg/stun, /obj/item/device/assembly/flash/armimplant)
+	origin_tech = "materials=5;combat=7;biotech=5;powerstorage=5;syndicate=6;programming=5"
 
 /obj/item/organ/cyberimp/arm/combat/New()
 	..()
@@ -231,3 +235,4 @@
 	name = "surgical toolset implant"
 	desc = "A set of surgical tools hidden behind a concealed panel on the user's arm"
 	contents = newlist(/obj/item/weapon/retractor, /obj/item/weapon/hemostat, /obj/item/weapon/cautery, /obj/item/weapon/surgicaldrill, /obj/item/weapon/scalpel, /obj/item/weapon/circular_saw, /obj/item/weapon/surgical_drapes)
+	origin_tech = "materials=3;engineering=3;biotech=3;programming=2;magnets=3"

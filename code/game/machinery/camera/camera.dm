@@ -12,6 +12,8 @@
 	active_power_usage = 10
 	layer = WALL_OBJ_LAYER
 
+	resistance_flags = FIRE_PROOF
+
 	armor = list(melee = 50, bullet = 20, laser = 20, energy = 20, bomb = 0, bio = 0, rad = 0, fire = 90, acid = 50)
 	obj_integrity = 100
 	max_integrity = 100
@@ -52,8 +54,9 @@
 			world.log << "[src.c_tag] [src.x] [src.y] [src.z] conflicts with [C.c_tag] [C.x] [C.y] [C.z]"
 	*/
 
-/obj/machinery/camera/initialize()
-	if(z == 1 && prob(3) && !start_active)
+/obj/machinery/camera/Initialize(mapload)
+	..()
+	if(mapload && z == 1 && prob(3) && !start_active)
 		toggle_cam()
 
 /obj/machinery/camera/Move()
@@ -100,7 +103,7 @@
 						if(can_use())
 							cameranet.addCamera(src)
 						emped = 0 //Resets the consecutive EMP count
-						addtimer(src, "cancelCameraAlarm", 100)
+						addtimer(CALLBACK(src, .proc/cancelCameraAlarm), 100)
 			for(var/mob/O in mob_list)
 				if (O.client && O.client.eye == src)
 					O.unset_machine()
@@ -128,7 +131,7 @@
 		return
 	user.electrocute_act(10, src)
 
-/obj/machinery/camera/attackby(obj/W, mob/living/user, params)
+/obj/machinery/camera/attackby(obj/item/W, mob/living/user, params)
 	var/msg = "<span class='notice'>You attach [W] into the assembly's inner circuits.</span>"
 	var/msg2 = "<span class='notice'>[src] already has that upgrade!</span>"
 
@@ -136,7 +139,7 @@
 	if(istype(W, /obj/item/weapon/screwdriver))
 		panel_open = !panel_open
 		user << "<span class='notice'>You screw the camera's panel [panel_open ? "open" : "closed"].</span>"
-		playsound(src.loc, 'sound/items/Screwdriver.ogg', 50, 1)
+		playsound(src.loc, W.usesound, 50, 1)
 		return
 
 	if(panel_open)
@@ -152,7 +155,7 @@
 
 		else if(istype(W, /obj/item/weapon/weldingtool))
 			if(weld(W, user))
-				visible_message("<span class='warning'>[user] unwelds [src], leaving it as just a frame screwed to the wall.</span>", "<span class='warning'>You unweld [src], leaving it as just a frame screwed to the wall</span>")
+				visible_message("<span class='warning'>[user] unwelds [src], leaving it as just a frame bolted to the wall.</span>", "<span class='warning'>You unweld [src], leaving it as just a frame bolted to the wall</span>")
 				deconstruct(TRUE)
 			return
 
@@ -284,7 +287,7 @@
 	if(status)
 		change_msg = "reactivates"
 		triggerCameraAlarm()
-		addtimer(src, "cancelCameraAlarm", 100)
+		addtimer(CALLBACK(src, .proc/cancelCameraAlarm), 100)
 	if(displaymessage)
 		if(user)
 			visible_message("<span class='danger'>[user] [change_msg] [src]!</span>")
@@ -372,9 +375,9 @@
 		return 0
 
 	user << "<span class='notice'>You start to weld [src]...</span>"
-	playsound(src.loc, 'sound/items/Welder.ogg', 50, 1)
+	playsound(src.loc, WT.usesound, 50, 1)
 	busy = 1
-	if(do_after(user, 100, target = src))
+	if(do_after(user, 100*WT.toolspeed, target = src))
 		busy = 0
 		if(!WT.isOn())
 			return 0

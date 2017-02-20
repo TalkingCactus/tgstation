@@ -109,11 +109,12 @@
  */
 
 /datum/reagent/water/reaction_turf(turf/open/T, reac_volume)
-	if (!istype(T)) return
+	if (!istype(T))
+		return
 	var/CT = cooling_temperature
 
 	if(reac_volume >= 5)
-		T.MakeSlippery(min_wet_time = 10, wet_time_to_add = reac_volume*1.5)
+		T.MakeSlippery(min_wet_time = 10, wet_time_to_add = min(reac_volume*1.5, 60))
 
 	for(var/mob/living/simple_animal/slime/M in T)
 		M.apply_water()
@@ -212,7 +213,13 @@
 /datum/reagent/fuel/unholywater		//if you somehow managed to extract this from someone, dont splash it on yourself and have a smoke
 	name = "Unholy Water"
 	id = "unholywater"
-	description = "Something that shouldn't exist on this plane of existance."
+	description = "Something that shouldn't exist on this plane of existence."
+
+/datum/reagent/fuel/unholywater/reaction_mob(mob/living/M, method=TOUCH, reac_volume)
+	if(method == TOUCH || method == VAPOR)
+		M.reagents.add_reagent("unholywater", (reac_volume/4))
+		return
+	return ..()
 
 /datum/reagent/fuel/unholywater/on_mob_life(mob/living/M)
 	if(iscultist(M))
@@ -226,7 +233,7 @@
 		M.adjustFireLoss(-2, 0)
 	else
 		M.adjustBrainLoss(3)
-		M.adjustToxLoss(2, 0)
+		M.adjustToxLoss(1, 0)
 		M.adjustFireLoss(2, 0)
 		M.adjustOxyLoss(2, 0)
 		M.adjustBruteLoss(2, 0)
@@ -259,9 +266,10 @@
 	color = "#009CA8" // rgb: 0, 156, 168
 
 /datum/reagent/lube/reaction_turf(turf/open/T, reac_volume)
-	if (!istype(T)) return
+	if (!istype(T))
+		return
 	if(reac_volume >= 1)
-		T.MakeSlippery(wet_setting=TURF_WET_LUBE, min_wet_time=15, wet_time_to_add=reac_volume*2)
+		T.MakeSlippery(TURF_WET_LUBE, 15, min(reac_volume * 2, 120))
 
 /datum/reagent/spraytan
 	name = "Spray Tan"
@@ -300,7 +308,7 @@
 					if ("albino")
 						N.skin_tone = "caucasian1"
 
-			if(MUTCOLORS in N.dna.species.specflags) //take current alien color and darken it slightly
+			if(MUTCOLORS in N.dna.species.species_traits) //take current alien color and darken it slightly
 				var/newcolor = ""
 				var/len = length(N.dna.features["mcolor"])
 				for(var/i=1, i<=len, i+=1)
@@ -343,7 +351,7 @@
 			N.skin_tone = "orange"
 			N.hair_style = "Spiky"
 			N.hair_color = "000"
-		if(MUTCOLORS in N.dna.species.specflags) //Aliens with custom colors simply get turned orange
+		if(MUTCOLORS in N.dna.species.species_traits) //Aliens with custom colors simply get turned orange
 			N.dna.features["mcolor"] = "f80"
 		N.regenerate_icons()
 		if(prob(7))
@@ -371,7 +379,7 @@
 	H.visible_message("<b>[H]</b> falls to the ground and screams as [H.p_their()] skin bubbles and froths!") //'froths' sounds painful when used with SKIN.
 	H.Weaken(3, 0)
 	spawn(30)
-		if(!H || qdeleted(H))
+		if(!H || QDELETED(H))
 			return
 
 		var/current_species = H.dna.species.type
@@ -685,7 +693,7 @@
 /datum/reagent/lithium
 	name = "Lithium"
 	id = "lithium"
-	description = "A silver metal, it's claim to fame is its remarkably low density. Using it is a bit too effective in calming oneself down."
+	description = "A silver metal, its claim to fame is its remarkably low density. Using it is a bit too effective in calming oneself down."
 	reagent_state = SOLID
 	color = "#808080" // rgb: 128, 128, 128
 
@@ -799,6 +807,26 @@
 				GG = new/obj/effect/decal/cleanable/greenglow(T)
 			GG.reagents.add_reagent("uranium", reac_volume)
 
+/datum/reagent/bluespace
+	name = "Bluespace Dust"
+	id = "bluespace"
+	description = "A dust composed of microscopic bluespace crystals, with minor space-warping properties."
+	reagent_state = SOLID
+	color = "#0000CC"
+
+/datum/reagent/bluespace/reaction_mob(mob/living/M, method=TOUCH, reac_volume)
+	if(method == TOUCH || method == VAPOR)
+		do_teleport(M, get_turf(M), (reac_volume / 5), asoundin = 'sound/effects/phasein.ogg') //4 tiles per crystal
+	..()
+
+/datum/reagent/bluespace/on_mob_life(mob/living/M)
+	if(current_cycle > 10 && prob(15))
+		M << "<span class='warning'>You feel unstable...</span>"
+		M.Jitter(2)
+		current_cycle = 1
+		addtimer(CALLBACK(GLOBAL_PROC, .proc/do_teleport, M, get_turf(M), 5, asoundin = 'sound/effects/phasein.ogg'), 30)
+	..()
+
 /datum/reagent/aluminium
 	name = "Aluminium"
 	id = "aluminium"
@@ -843,10 +871,12 @@
 		qdel(O)
 	else
 		if(O)
+			O.remove_atom_colour(WASHABLE_COLOUR_PRIORITY)
 			O.clean_blood()
 
 /datum/reagent/space_cleaner/reaction_turf(turf/T, reac_volume)
 	if(reac_volume >= 1)
+		T.remove_atom_colour(WASHABLE_COLOUR_PRIORITY)
 		T.clean_blood()
 		for(var/obj/effect/decal/cleanable/C in T)
 			qdel(C)
@@ -856,6 +886,7 @@
 
 /datum/reagent/space_cleaner/reaction_mob(mob/M, method=TOUCH, reac_volume)
 	if(method == TOUCH || method == VAPOR)
+		M.remove_atom_colour(WASHABLE_COLOUR_PRIORITY)
 		if(iscarbon(M))
 			var/mob/living/carbon/C = M
 			if(ishuman(M))
@@ -885,11 +916,28 @@
 				H.wash_cream()
 			M.clean_blood()
 
+/datum/reagent/space_cleaner/ez_clean
+	name = "EZ Clean"
+	id = "ez_clean"
+	description = "A powerful, acidic cleaner sold by Waffle Co. Affects organic matter while leaving other objects unaffected."
+	metabolization_rate = 1.5 * REAGENTS_METABOLISM
+
+/datum/reagent/space_cleaner/ez_clean/on_mob_life(mob/living/M)
+	M.adjustBruteLoss(3.33)
+	M.adjustFireLoss(3.33)
+	M.adjustToxLoss(3.33)
+	..()
+
+/datum/reagent/space_cleaner/ez_clean/reaction_mob(mob/living/M, method=TOUCH, reac_volume)
+	..()
+	if((method == TOUCH || method == VAPOR) && !issilicon(M))
+		M.adjustBruteLoss(1)
+		M.adjustFireLoss(1)
 
 /datum/reagent/cryptobiolin
 	name = "Cryptobiolin"
 	id = "cryptobiolin"
-	description = "Cryptobiolin causes confusion and dizzyness."
+	description = "Cryptobiolin causes confusion and dizziness."
 	color = "#C8A5DC" // rgb: 200, 165, 220
 	metabolization_rate = 1.5 * REAGENTS_METABOLISM
 
@@ -989,6 +1037,23 @@
 /datum/reagent/carbondioxide/reaction_turf(turf/open/T, reac_volume)
 	if(istype(T))
 		T.atmos_spawn_air("co2=[reac_volume/5];TEMP=[T20C]")
+	return
+
+/datum/reagent/nitrous_oxide
+	name = "Nitrous Oxide"
+	id = "nitrous_oxide"
+	description = "A potent oxidizer used as fuel in rockets and as an anaesthetic during surgery."
+	reagent_state = LIQUID
+	color = "#808080"
+
+/datum/reagent/nitrous_oxide/reaction_obj(obj/O, reac_volume)
+	if((!O) || (!reac_volume))
+		return 0
+	O.atmos_spawn_air("n2o=[reac_volume/5];TEMP=[T20C]")
+
+/datum/reagent/nitrous_oxide/reaction_turf(turf/open/T, reac_volume)
+	if(istype(T))
+		T.atmos_spawn_air("n2o=[reac_volume/5];TEMP=[T20C]")
 	return
 
 
@@ -1158,7 +1223,7 @@
 /datum/reagent/ash
 	name = "Ash"
 	id = "ash"
-	description = "Supposedly pheonixes rise from these, but you've never seen it."
+	description = "Supposedly phoenixes rise from these, but you've never seen it."
 	reagent_state = LIQUID
 	color = "#C8A5DC"
 
@@ -1180,23 +1245,23 @@
 
 /datum/reagent/colorful_reagent/on_mob_life(mob/living/M)
 	if(M && isliving(M))
-		M.color = pick(random_color_list)
+		M.add_atom_colour(pick(random_color_list), WASHABLE_COLOUR_PRIORITY)
 	..()
 	return
 
 /datum/reagent/colorful_reagent/reaction_mob(mob/living/M, reac_volume)
 	if(M && isliving(M))
-		M.color = pick(random_color_list)
+		M.add_atom_colour(pick(random_color_list), WASHABLE_COLOUR_PRIORITY)
 	..()
 
 /datum/reagent/colorful_reagent/reaction_obj(obj/O, reac_volume)
 	if(O)
-		O.color = pick(random_color_list)
+		O.add_atom_colour(pick(random_color_list), WASHABLE_COLOUR_PRIORITY)
 	..()
 
 /datum/reagent/colorful_reagent/reaction_turf(turf/T, reac_volume)
 	if(T)
-		T.color = pick(random_color_list)
+		T.add_atom_colour(pick(random_color_list), WASHABLE_COLOUR_PRIORITY)
 	..()
 
 /datum/reagent/hair_dye
@@ -1336,8 +1401,8 @@
 
 //Misc reagents
 
-datum/reagent/romerol
-	name = "romerol"
+/datum/reagent/romerol
+	name = "Romerol"
 	// the REAL zombie powder
 	id = "romerol"
 	description = "Romerol is a highly experimental bioterror agent \
@@ -1351,25 +1416,33 @@ datum/reagent/romerol
 
 /datum/reagent/romerol/on_mob_life(mob/living/carbon/human/H)
 	// Silently add the zombie infection organ to be activated upon death
-	new /obj/item/organ/body_egg/zombie_infection(H)
+	new /obj/item/organ/zombie_infection(H)
 	..()
 
 /datum/reagent/growthserum
-	name = "Growth serum"
+	name = "Growth Serum"
 	id = "growthserum"
 	description = "A commercial chemical designed to help older men in the bedroom."//not really it just makes you a giant
 	color = "#ff0000"//strong red. rgb 255, 0, 0
 	var/current_size = 1
 
 /datum/reagent/growthserum/on_mob_life(mob/living/carbon/H)
-	if(volume >= 20 && current_size != 2)
-		H.resize = 2/current_size
-		current_size = 2
-		H.update_transform()
-	else if (current_size != 1.5)
-		H.resize = 1.5/current_size
-		current_size = 1.5
-		H.update_transform()
+	var/newsize = current_size
+	switch(volume)
+		if(0 to 19)
+			newsize = 1.25
+		if(20 to 49)
+			newsize = 1.5
+		if(50 to 99)
+			newsize = 2
+		if(100 to 199)
+			newsize = 2.5
+		if(200 to INFINITY)
+			newsize = 3.5
+
+	H.resize = newsize/current_size
+	current_size = newsize
+	H.update_transform()
 	..()
 
 /datum/reagent/growthserum/on_mob_delete(mob/living/M)

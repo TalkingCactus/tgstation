@@ -25,7 +25,10 @@
 	var/list/allowed_books = list(/obj/item/weapon/book, /obj/item/weapon/spellbook, /obj/item/weapon/storage/book) //Things allowed in the bookcase
 
 
-/obj/structure/bookcase/initialize()
+/obj/structure/bookcase/Initialize(mapload)
+	..()
+	if(!mapload)
+		return
 	state = 2
 	icon_state = "book-0"
 	anchored = 1
@@ -39,14 +42,14 @@
 	switch(state)
 		if(0)
 			if(istype(I, /obj/item/weapon/wrench))
-				playsound(loc, 'sound/items/Ratchet.ogg', 100, 1)
-				if(do_after(user, 20/I.toolspeed, target = src))
+				playsound(loc, I.usesound, 100, 1)
+				if(do_after(user, 20*I.toolspeed, target = src))
 					user << "<span class='notice'>You wrench the frame into place.</span>"
 					anchored = 1
 					state = 1
 			if(istype(I, /obj/item/weapon/crowbar))
-				playsound(loc, 'sound/items/Crowbar.ogg', 100, 1)
-				if(do_after(user, 20/I.toolspeed, target = src))
+				playsound(loc, I.usesound, 100, 1)
+				if(do_after(user, 20*I.toolspeed, target = src))
 					user << "<span class='notice'>You pry the frame apart.</span>"
 					deconstruct(TRUE)
 
@@ -59,7 +62,7 @@
 					state = 2
 					icon_state = "book-0"
 			if(istype(I, /obj/item/weapon/wrench))
-				playsound(loc, 'sound/items/Ratchet.ogg', 100, 1)
+				playsound(loc, I.usesound, 100, 1)
 				user << "<span class='notice'>You unwrench the frame.</span>"
 				anchored = 0
 				state = 0
@@ -87,7 +90,7 @@
 				if(contents.len)
 					user << "<span class='warning'>You need to remove the books first!</span>"
 				else
-					playsound(loc, 'sound/items/Crowbar.ogg', 100, 1)
+					playsound(loc, I.usesound, 100, 1)
 					user << "<span class='notice'>You pry the shelf out.</span>"
 					new /obj/item/stack/sheet/mineral/wood(loc, 2)
 					state = 1
@@ -165,7 +168,7 @@
 	icon_state ="book"
 	throw_speed = 1
 	throw_range = 5
-	w_class = 3		 //upped to three because books are, y'know, pretty big. (and you could hide them inside eachother recursively forever)
+	w_class = WEIGHT_CLASS_NORMAL		 //upped to three because books are, y'know, pretty big. (and you could hide them inside eachother recursively forever)
 	attack_verb = list("bashed", "whacked", "educated")
 	resistance_flags = FLAMMABLE
 	var/dat				//Actual page content
@@ -177,6 +180,7 @@
 
 /obj/item/weapon/book/attack_self(mob/user)
 	if(is_blind(user))
+		user << "<span class='warning'>As you are trying to read, you suddenly feel very stupid!</span>"
 		return
 	if(ismonkey(user))
 		user << "<span class='notice'>You skim through the book but can't comprehend any of it.</span>"
@@ -192,6 +196,7 @@
 /obj/item/weapon/book/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/weapon/pen))
 		if(is_blind(user))
+			user << "<span class='warning'> As you are trying to write on the book, you suddenly feel very stupid!</span>"
 			return
 		if(unique)
 			user << "<span class='warning'>These pages don't seem to take the ink well! Looks like you can't modify it.</span>"
@@ -286,7 +291,7 @@
 	icon_state ="scanner"
 	throw_speed = 3
 	throw_range = 5
-	w_class = 1
+	w_class = WEIGHT_CLASS_TINY
 	var/obj/machinery/computer/libraryconsole/bookmanagement/computer	//Associated computer - Modes 1 to 3 use this
 	var/obj/item/weapon/book/book			//Currently scanned book
 	var/mode = 0							//0 - Scan only, 1 - Scan and Set Buffer, 2 - Scan and Attempt to Check In, 3 - Scan and Attempt to Add to Inventory

@@ -27,6 +27,8 @@
 	med_hud_set_status()
 
 /mob/living/Destroy()
+	if(ranged_ability)
+		ranged_ability.remove_ranged_ability(src)
 	if(buckled)
 		buckled.unbuckle_mob(src,force=1)
 
@@ -37,9 +39,15 @@
 			qdel(I)
 	staticOverlays.len = 0
 	remove_from_all_data_huds()
-	..()
 
-	return QDEL_HINT_HARDDEL
+	return ..()
+
+/mob/living/ghostize(can_reenter_corpse = 1)
+	var/prev_client = client
+	. = ..()
+	if(.)
+		if(ranged_ability && prev_client)
+			ranged_ability.remove_mousepointer(prev_client)
 
 
 /mob/living/proc/OpenCraftingMenu()
@@ -117,10 +125,10 @@
 	if(!M.buckled && !M.has_buckled_mobs())
 		var/mob_swap
 		//the puller can always swap with its victim if on grab intent
-		if(M.pulledby == src && a_intent == "grab")
+		if(M.pulledby == src && a_intent == INTENT_GRAB)
 			mob_swap = 1
 		//restrained people act if they were on 'help' intent to prevent a person being pulled from being seperated from their puller
-		else if((M.restrained() || M.a_intent == "help") && (restrained() || a_intent == "help"))
+		else if((M.restrained() || M.a_intent == INTENT_HELP) && (restrained() || a_intent == INTENT_HELP))
 			mob_swap = 1
 		if(mob_swap)
 			//switch our position with M
@@ -430,18 +438,21 @@
 	if (s_active && !(s_active.ClickAccessible(src, depth=STORAGE_VIEW_DEPTH) || s_active.Adjacent(src)))
 		s_active.close(src)
 
-/mob/living/movement_delay()
+/mob/living/movement_delay(ignorewalk = 0)
 	. = ..()
-	if(isopenturf(loc))
+	if(isopenturf(loc) && !is_flying())
 		var/turf/open/T = loc
 		. += T.slowdown
-	switch(m_intent)
-		if("run")
-			if(drowsyness > 0)
-				. += 6
-			. += config.run_speed
-		if("walk")
-			. += config.walk_speed
+	if(ignorewalk)
+		. += config.run_speed
+	else
+		switch(m_intent)
+			if(MOVE_INTENT_RUN)
+				if(drowsyness > 0)
+					. += 6
+				. += config.run_speed
+			if(MOVE_INTENT_WALK)
+				. += config.walk_speed
 
 /mob/living/proc/makeTrail(turf/T)
 	if(!has_gravity())
@@ -474,7 +485,7 @@
 						TH.transfer_mob_blood_dna(src)
 
 /mob/living/carbon/human/makeTrail(turf/T)
-	if((NOBLOOD in dna.species.specflags) || !bleed_rate || bleedsuppress)
+	if((NOBLOOD in dna.species.species_traits) || !bleed_rate || bleedsuppress)
 		return
 	..()
 
@@ -508,7 +519,7 @@
 				if (AM.density && AM.anchored)
 					pressure_resistance_prob_delta -= 20
 					break
-	if(!slipping)
+	if(!force_moving)
 		..(pressure_difference, direction, pressure_resistance_prob_delta)
 
 /mob/living/verb/resist()
@@ -587,7 +598,7 @@
 	if(!override)
 		float(!has_gravity)
 
-/mob/living/proc/float(on)
+/mob/living/float(on)
 	if(throwing)
 		return
 	var/fixed = 0
@@ -595,6 +606,8 @@
 		fixed = 1
 	if(on && !floating && !fixed)
 		animate(src, pixel_y = pixel_y + 2, time = 10, loop = -1)
+		sleep(10)
+		animate(src, pixel_y = pixel_y - 2, time = 10, loop = -1)
 		floating = 1
 	else if(((!on || fixed) && floating))
 		animate(src, pixel_y = get_standard_pixel_y_offset(lying), time = 10)
@@ -614,11 +627,11 @@
 			if(islist(where))
 				var/list/L = where
 				if(what == who.get_item_for_held_index(L[2]))
-					who.unEquip(what)
-					add_logs(src, who, "stripped", addition="of [what]")
+					if(who.dropItemToGround(what))
+						add_logs(src, who, "stripped", addition="of [what]")
 			if(what == who.get_item_by_slot(where))
-				who.unEquip(what)
-				add_logs(src, who, "stripped", addition="of [what]")
+				if(who.dropItemToGround(what))
+					add_logs(src, who, "stripped", addition="of [what]")
 
 // The src mob is trying to place an item on someone
 // Override if a certain mob should be behave differently when placing items (can't, for example)
@@ -629,96 +642,32 @@
 		return
 	if(what)
 		var/list/where_list
+		var/final_where
+
 		if(islist(where))
 			where_list = where
-			if(!what.mob_can_equip(who, src, where[1], 1))
-				src << "<span class='warning'>\The [what.name] doesn't fit in that place!</span>"
-				return
+			final_where = where[1]
 		else
-			if(!what.mob_can_equip(who, src, where, 1))
-				src << "<span class='warning'>\The [what.name] doesn't fit in that place!</span>"
-				return
+			final_where = where
+
+		if(!what.mob_can_equip(who, src, final_where, TRUE))
+			src << "<span class='warning'>\The [what.name] doesn't fit in that place!</span>"
+			return
+
 		visible_message("<span class='notice'>[src] tries to put [what] on [who].</span>")
 		if(do_mob(src, who, what.put_on_delay))
-			if(what && Adjacent(who))
-				unEquip(what)
-				if(where_list)
-					who.put_in_hand(what, where_list[2])
-				else
-					who.equip_to_slot_if_possible(what, where, 0, 1)
-				add_logs(src, who, "equipped", what)
-
+			if(what && Adjacent(who) && what.mob_can_equip(who, src, final_where, TRUE))
+				if(temporarilyRemoveItemFromInventory(what))
+					if(where_list)
+						who.put_in_hand(what, where_list[2])
+					else
+						who.equip_to_slot(what, where, TRUE)
 
 /mob/living/singularity_pull(S, current_size)
 	if(current_size >= STAGE_SIX)
-		throw_at_fast(S,14,3, spin=1)
+		throw_at(S,14,3, spin=1)
 	else
 		step_towards(src,S)
-
-/atom/movable/proc/do_attack_animation(atom/A, end_pixel_y)
-	var/pixel_x_diff = 0
-	var/pixel_y_diff = 0
-	var/final_pixel_y = initial(pixel_y)
-	if(end_pixel_y)
-		final_pixel_y = end_pixel_y
-
-	var/direction = get_dir(src, A)
-	if(direction & NORTH)
-		pixel_y_diff = 8
-	else if(direction & SOUTH)
-		pixel_y_diff = -8
-
-	if(direction & EAST)
-		pixel_x_diff = 8
-	else if(direction & WEST)
-		pixel_x_diff = -8
-
-	animate(src, pixel_x = pixel_x + pixel_x_diff, pixel_y = pixel_y + pixel_y_diff, time = 2)
-	animate(pixel_x = initial(pixel_x), pixel_y = final_pixel_y, time = 2)
-
-
-/mob/living/do_attack_animation(atom/A)
-	var/final_pixel_y = get_standard_pixel_y_offset(lying)
-	..(A, final_pixel_y)
-	floating = 0 // If we were without gravity, the bouncing animation got stopped, so we make sure we restart the bouncing after the next movement.
-
-	// What icon do we use for the attack?
-	var/image/I
-	var/obj/item/held_item = get_active_held_item()
-	if(held_item)
-		I = image(held_item.icon, A, held_item.icon_state, A.layer + 0.1)
-	else
-		return
-
-	// Who can see the attack?
-	var/list/viewing = list()
-	for(var/mob/M in viewers(A))
-		if(M.client)
-			viewing |= M.client
-	flick_overlay(I, viewing, 5) // 5 ticks/half a second
-
-	// Scale the icon.
-	I.transform *= 0.75
-	// The icon should not rotate.
-	I.appearance_flags = APPEARANCE_UI_IGNORE_ALPHA
-
-	// Set the direction of the icon animation.
-	var/direction = get_dir(src, A)
-	if(direction & NORTH)
-		I.pixel_y = -16
-	else if(direction & SOUTH)
-		I.pixel_y = 16
-
-	if(direction & EAST)
-		I.pixel_x = -16
-	else if(direction & WEST)
-		I.pixel_x = 16
-
-	if(!direction) // Attacked self?!
-		I.pixel_z = 16
-
-	// And animate the attack!
-	animate(I, alpha = 175, pixel_x = 0, pixel_y = 0, pixel_z = 0, time = 3)
 
 /mob/living/proc/do_jitter_animation(jitteriness)
 	var/amplitude = min(4, (jitteriness/100) + 1)
@@ -807,7 +756,7 @@
 	return 0
 
 /mob/living/proc/harvest(mob/living/user)
-	if(qdeleted(src))
+	if(QDELETED(src))
 		return
 	if(butcher_results)
 		for(var/path in butcher_results)
@@ -876,14 +825,14 @@
 			return 1
 	return 0
 
-/mob/living/throw_at(atom/target, range, speed, mob/thrower, spin=1, diagonals_first = 0)
+/mob/living/throw_at(atom/target, range, speed, mob/thrower, spin=1, diagonals_first = 0, datum/callback/callback)
 	stop_pulling()
 	. = ..()
 
 // Called when we are hit by a bolt of polymorph and changed
-// Generally the mob we are currently in, is about to be deleted
+// Generally the mob we are currently in is about to be deleted
 /mob/living/proc/wabbajack_act(mob/living/new_mob)
-	new_mob.name = name
+	new_mob.name = real_name
 	new_mob.real_name = real_name
 
 	if(mind)
@@ -950,3 +899,14 @@
 		IgniteMob()
 
 //Mobs on Fire end
+
+// used by secbot and monkeys Crossed
+/mob/living/proc/knockOver(var/mob/living/carbon/C)
+	C.visible_message("<span class='warning'>[pick( \
+					  "[C] dives out of [src]'s way!", \
+					  "[C] stumbles over [src]!", \
+					  "[C] jumps out of [src]'s path!", \
+					  "[C] trips over [src] and falls!", \
+					  "[C] topples over [src]!", \
+					  "[C] leaps out of [src]'s way!")]</span>")
+	C.Weaken(2)

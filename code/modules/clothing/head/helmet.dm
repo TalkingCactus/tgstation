@@ -4,7 +4,7 @@
 	icon_state = "helmet"
 	flags = HEADBANGPROTECT
 	item_state = "helmet"
-	armor = list(melee = 40, bullet = 30, laser = 30,energy = 10, bomb = 25, bio = 0, rad = 0, fire = 50, acid = 50)
+	armor = list(melee = 35, bullet = 30, laser = 30,energy = 10, bomb = 25, bio = 0, rad = 0, fire = 50, acid = 50)
 	flags_inv = HIDEEARS
 	cold_protection = HEAD
 	min_cold_protection_temperature = HELMET_MIN_TEMP_PROTECT
@@ -45,13 +45,14 @@
 	alt_toggle_message = "You push the visor up on"
 	can_toggle = 1
 	flags = HEADBANGPROTECT
-	armor = list(melee = 41, bullet = 15, laser = 5,energy = 5, bomb = 5, bio = 2, rad = 0, fire = 50, acid = 50)
+	armor = list(melee = 45, bullet = 15, laser = 5,energy = 5, bomb = 5, bio = 2, rad = 0, fire = 50, acid = 50)
 	flags_inv = HIDEEARS|HIDEFACE
 	strip_delay = 80
 	actions_types = list(/datum/action/item_action/toggle)
 	visor_flags_inv = HIDEFACE
 	toggle_cooldown = 0
 	flags_cover = HEADCOVERSEYES | HEADCOVERSMOUTH
+	visor_flags_cover = HEADCOVERSEYES | HEADCOVERSMOUTH
 	dog_fashion = null
 
 /obj/item/clothing/head/helmet/attack_self(mob/user)
@@ -234,8 +235,8 @@
 
 	return
 
-/obj/item/clothing/head/helmet/ui_action_click(mob/user, actiontype)
-	if(actiontype == /datum/action/item_action/toggle_helmet_flashlight)
+/obj/item/clothing/head/helmet/ui_action_click(mob/user, action)
+	if(istype(action, /datum/action/item_action/toggle_helmet_flashlight))
 		toggle_helmlight()
 	else
 		..()
@@ -245,13 +246,12 @@
 		var/obj/item/device/flashlight/seclite/S = I
 		if(can_flashlight)
 			if(!F)
-				if(!user.unEquip(S))
+				if(!user.transferItemToLoc(S, src))
 					return
 				user << "<span class='notice'>You click [S] into place on [src].</span>"
 				if(S.on)
 					SetLuminosity(0)
 				F = S
-				S.loc = src
 				update_icon()
 				update_helmlight(user)
 				verbs += /obj/item/clothing/head/helmet/proc/toggle_helmlight

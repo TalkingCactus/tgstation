@@ -1,21 +1,17 @@
 
 /mob/living/carbon/get_eye_protection()
 	var/number = ..()
-	for(var/obj/item/organ/cyberimp/eyes/EFP in internal_organs)
-		number += EFP.flash_protect
+
+	var/obj/item/organ/eyes/E = getorganslot("eye_sight")
+	if(!E)
+		number = INFINITY //Can't get flashed without eyes
+	else
+		number += E.flash_protect
 	return number
 
 /mob/living/carbon/get_ear_protection()
 	if(head && (head.flags & HEADBANGPROTECT))
 		return 1
-
-//Overridden so we can handle when it hits a limb that doesn't exist
-mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
-	var/obj/item/bodypart/affecting = get_bodypart(def_zone)
-	if(!affecting) //that zone is dismembered
-		. = bullet_act(P, "chest")//act on chest instead
-	else
-		. = ..()//Proceed with standard handling
 
 /mob/living/carbon/check_projectile_dismemberment(obj/item/projectile/P, def_zone)
 	var/obj/item/bodypart/affecting = get_bodypart(def_zone)
@@ -43,6 +39,7 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 	send_item_attack_message(I, user, affecting.name)
 	if(I.force)
 		apply_damage(I.force, I.damtype, affecting)
+		damage_clothes(I.force, I.damtype, "melee", affecting.body_zone)
 		if(I.damtype == BRUTE && affecting.status == BODYPART_ORGANIC)
 			if(prob(33))
 				I.add_mob_blood(src)
@@ -55,6 +52,9 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 					if(wear_mask)
 						wear_mask.add_mob_blood(src)
 						update_inv_wear_mask()
+					if(wear_neck)
+						wear_neck.add_mob_blood(src)
+						update_inv_neck()
 					if(head)
 						head.add_mob_blood(src)
 						update_inv_head()
@@ -81,7 +81,7 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 			ContractDisease(D)
 
 	if(lying && surgeries.len)
-		if(user.a_intent == "help")
+		if(user.a_intent == INTENT_HELP)
 			for(var/datum/surgery/S in surgeries)
 				if(S.next_step(user))
 					return 1
@@ -97,7 +97,7 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 		if(D.IsSpreadByTouch())
 			ContractDisease(D)
 
-	if(M.a_intent == "help")
+	if(M.a_intent == INTENT_HELP)
 		help_shake_act(M)
 		return 0
 
@@ -168,7 +168,9 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 		O.emp_act(severity)
 	..()
 
-/mob/living/carbon/electrocute_act(shock_damage, obj/source, siemens_coeff = 1, override = 0, tesla_shock = 0)
+/mob/living/carbon/electrocute_act(shock_damage, obj/source, siemens_coeff = 1, safety = 0, override = 0, tesla_shock = 0, illusion = 0, stun = TRUE)
+	if(tesla_shock && tesla_ignore)
+		return FALSE
 	shock_damage *= siemens_coeff
 	if(dna && dna.species)
 		shock_damage *= dna.species.siemens_coeff
@@ -176,7 +178,10 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 		return 0
 	if(reagents.has_reagent("teslium"))
 		shock_damage *= 1.5 //If the mob has teslium in their body, shocks are 50% more damaging!
-	take_overall_damage(0,shock_damage)
+	if(illusion)
+		adjustStaminaLoss(shock_damage)
+	else
+		take_overall_damage(0,shock_damage)
 	visible_message(
 		"<span class='danger'>[src] was shocked by \the [source]!</span>", \
 		"<span class='userdanger'>You feel a powerful shock coursing through your body!</span>", \
@@ -185,11 +190,11 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 	jitteriness += 1000 //High numbers for violent convulsions
 	do_jitter_animation(jitteriness)
 	stuttering += 2
-	if(!tesla_shock || (tesla_shock && siemens_coeff > 0.5))
+	if((!tesla_shock || (tesla_shock && siemens_coeff > 0.5)) && stun)
 		Stun(2)
 	spawn(20)
 		jitteriness = max(jitteriness - 990, 10) //Still jittery, but vastly less
-		if(!tesla_shock || (tesla_shock && siemens_coeff > 0.5))
+		if((!tesla_shock || (tesla_shock && siemens_coeff > 0.5)) && stun)
 			Stun(3)
 			Weaken(3)
 	if(override)
@@ -205,11 +210,14 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 	if(health >= 0 && !(status_flags & FAKEDEATH))
 
 		if(lying)
-			M.visible_message("<span class='notice'>[M] shakes [src] trying to get them up!</span>", \
-							"<span class='notice'>You shake [src] trying to get them up!</span>")
+			M.visible_message("<span class='notice'>[M] shakes [src] trying to get [p_them()] up!</span>", \
+							"<span class='notice'>You shake [src] trying to get [p_them()] up!</span>")
+		else if(check_zone(M.zone_selected) == "head")
+			M.visible_message("<span class='notice'>[M] gives [src] a pat on the head to make [p_them()] feel better!</span>", \
+						"<span class='notice'>You give [src] a pat on the head to make [p_them()] feel better!</span>")
 		else
-			M.visible_message("<span class='notice'>[M] hugs [src] to make them feel better!</span>", \
-						"<span class='notice'>You hug [src] to make them feel better!</span>")
+			M.visible_message("<span class='notice'>[M] hugs [src] to make [p_them()] feel better!</span>", \
+						"<span class='notice'>You hug [src] to make [p_them()] feel better!</span>")
 		AdjustSleeping(-5)
 		AdjustParalysis(-3)
 		AdjustStunned(-3)
@@ -228,8 +236,6 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 	if(.) // we've been flashed
 		if(visual)
 			return
-		if(weakeyes)
-			Stun(2)
 
 		if (damage == 1)
 			src << "<span class='warning'>Your eyes sting a little.</span>"
@@ -289,12 +295,16 @@ mob/living/carbon/bullet_act(obj/item/projectile/P, def_zone)
 
 
 /mob/living/carbon/damage_clothes(damage_amount, damage_type = BRUTE, damage_flag = 0, def_zone)
-	var/bodypart_bit = 0
-	if(def_zone)
-		bodypart_bit = body_zone2body_parts_covered(def_zone)
-	for(var/X in get_equipped_items())
-		var/obj/item/I = X
-		if(I.body_parts_covered & bodypart_bit)
-			I.take_damage(0.5*damage_amount, damage_type, damage_flag, 0)
-			//0.5 multiplier for balance reason, we don't want clothes to be too easily destroyed
-
+	if(damage_type != BRUTE && damage_type != BURN)
+		return
+	damage_amount *= 0.5 //0.5 multiplier for balance reason, we don't want clothes to be too easily destroyed
+	if(!def_zone || def_zone == "head")
+		var/obj/item/clothing/hit_clothes
+		if(wear_mask)
+			hit_clothes = wear_mask
+		if(wear_neck)
+			hit_clothes = wear_neck
+		if(head)
+			hit_clothes = head
+		if(hit_clothes)
+			hit_clothes.take_damage(damage_amount, damage_type, damage_flag, 0)

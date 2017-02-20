@@ -74,7 +74,6 @@ var/list/global_modular_computers = list()
 /obj/machinery/modular_computer/proc/eject_id()
 	set name = "Eject ID"
 	set category = "Object"
-	set src in view(1)
 
 	if(cpu)
 		cpu.eject_id()
@@ -83,10 +82,17 @@ var/list/global_modular_computers = list()
 /obj/machinery/modular_computer/proc/eject_disk()
 	set name = "Eject Data Disk"
 	set category = "Object"
-	set src in view(1)
 
 	if(cpu)
 		cpu.eject_disk()
+
+/obj/machinery/modular_computer/proc/eject_card()
+	set name = "Eject Intellicard"
+	set category = "Object"
+	set src in view(1)
+
+	if(cpu)
+		cpu.eject_card()
 
 /obj/machinery/modular_computer/AltClick(mob/user)
 	if(cpu)
@@ -135,6 +141,7 @@ var/list/global_modular_computers = list()
 /obj/machinery/modular_computer/ex_act(severity)
 	if(cpu)
 		cpu.ex_act(severity)
+	..()
 
 // EMPs are similar to explosions, but don't cause physical damage to the casing. Instead they screw up the components
 /obj/machinery/modular_computer/emp_act(severity)

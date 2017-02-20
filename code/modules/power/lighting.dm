@@ -62,9 +62,9 @@
 	switch(stage)
 		if(1)
 			if(istype(W, /obj/item/weapon/wrench))
-				playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
+				playsound(src.loc, W.usesound, 75, 1)
 				usr << "<span class='notice'>You begin deconstructing [src]...</span>"
-				if (!do_after(usr, 30/W.toolspeed, target = src))
+				if (!do_after(usr, 30*W.toolspeed, target = src))
 					return
 				new /obj/item/stack/sheet/metal( get_turf(src.loc), sheets_refunded )
 				user.visible_message("[user.name] deconstructs [src].", \
@@ -102,13 +102,13 @@
 				new /obj/item/stack/cable_coil(get_turf(loc), 1, "red")
 				user.visible_message("[user.name] removes the wiring from [src].", \
 					"<span class='notice'>You remove the wiring from [src].</span>", "<span class='italics'>You hear clicking.</span>")
-				playsound(loc, 'sound/items/Wirecutter.ogg', 100, 1)
+				playsound(loc, W.usesound, 100, 1)
 				return
 
 			if(istype(W, /obj/item/weapon/screwdriver))
 				user.visible_message("[user.name] closes [src]'s casing.", \
 					"<span class='notice'>You close [src]'s casing.</span>", "<span class='italics'>You hear screwing.</span>")
-				playsound(loc, 'sound/items/Screwdriver.ogg', 75, 1)
+				playsound(loc, W.usesound, 75, 1)
 				switch(fixture_type)
 					if("tube")
 						newlight = new /obj/machinery/light/built(loc)
@@ -302,7 +302,7 @@
 
 	// attempt to insert light
 	else if(istype(W, /obj/item/weapon/light))
-		if(status != LIGHT_EMPTY)
+		if(status == LIGHT_OK)
 			user << "<span class='warning'>There is a [fitting] already inserted!</span>"
 		else
 			src.add_fingerprint(user)
@@ -310,8 +310,14 @@
 			if(istype(L, light_type))
 				if(!user.drop_item())
 					return
+
+				src.add_fingerprint(user)
+				if(status != LIGHT_EMPTY)
+					drop_light_tube(user)
+					user << "<span class='notice'>You replace [L].</span>"
+				else
+					user << "<span class='notice'>You insert [L].</span>"
 				status = L.status
-				user << "<span class='notice'>You insert the [L.name].</span>"
 				switchcount = L.switchcount
 				rigged = L.rigged
 				brightness = L.brightness
@@ -328,7 +334,7 @@
 	// attempt to stick weapon into light socket
 	else if(status == LIGHT_EMPTY)
 		if(istype(W, /obj/item/weapon/screwdriver)) //If it's a screwdriver open it.
-			playsound(src.loc, 'sound/items/Screwdriver.ogg', 75, 1)
+			playsound(src.loc, W.usesound, 75, 1)
 			user.visible_message("[user.name] opens [src]'s casing.", \
 				"<span class='notice'>You open [src]'s casing.</span>", "<span class='italics'>You hear a noise.</span>")
 			deconstruct()
@@ -339,7 +345,7 @@
 				s.set_up(3, 1, src)
 				s.start()
 				if (prob(75))
-					electrocute_mob(user, get_area(src), src, rand(0.7,1.0))
+					electrocute_mob(user, get_area(src), src, rand(0.7,1.0), TRUE)
 	else
 		return ..()
 
@@ -374,11 +380,11 @@
 	if(status == LIGHT_BROKEN || status == LIGHT_EMPTY)
 		if(on && (I.flags & CONDUCT))
 			if(prob(12))
-				electrocute_mob(user, get_area(src), src, 0.3)
+				electrocute_mob(user, get_area(src), src, 0.3, TRUE)
 
 /obj/machinery/light/take_damage(damage_amount, damage_type = BRUTE, damage_flag = 0, sound_effect = 1)
 	. = ..()
-	if(. && !qdeleted(src))
+	if(. && !QDELETED(src))
 		if(prob(damage_amount * 5))
 			break_light_tube()
 
@@ -402,8 +408,8 @@
 // returns whether this light has power
 // true if area has power and lightswitch is on
 /obj/machinery/light/proc/has_power()
-	var/area/A = src.loc.loc
-	return A.master.lightswitch && A.master.power_light
+	var/area/A = get_area(src)
+	return A.lightswitch && A.power_light
 
 /obj/machinery/light/proc/flicker(var/amount = rand(10, 20))
 	set waitfor = 0
@@ -528,7 +534,6 @@
 // called when area power state changes
 /obj/machinery/light/power_change()
 	var/area/A = get_area(src)
-	A = A.master
 	seton(A.lightswitch && A.power_light)
 
 // called when on fire
@@ -556,11 +561,11 @@
 	icon = 'icons/obj/lighting.dmi'
 	force = 2
 	throwforce = 5
-	w_class = 1
+	w_class = WEIGHT_CLASS_TINY
 	var/status = 0		// LIGHT_OK, LIGHT_BURNED or LIGHT_BROKEN
 	var/base_state
 	var/switchcount = 0	// number of times switched
-	materials = list(MAT_METAL=60)
+	materials = list(MAT_GLASS=100)
 	var/rigged = 0		// true if rigged to explode
 	var/brightness = 2 //how much light it gives off
 
@@ -570,7 +575,6 @@
 	icon_state = "ltube"
 	base_state = "ltube"
 	item_state = "c_tube"
-	materials = list(MAT_GLASS=100)
 	brightness = 8
 
 /obj/item/weapon/light/bulb
@@ -579,7 +583,6 @@
 	icon_state = "lbulb"
 	base_state = "lbulb"
 	item_state = "contvapour"
-	materials = list(MAT_GLASS=100)
 	brightness = 4
 
 /obj/item/weapon/light/throw_impact(atom/hit_atom)

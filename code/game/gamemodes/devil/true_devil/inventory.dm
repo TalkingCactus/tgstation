@@ -1,5 +1,5 @@
-/mob/living/carbon/true_devil/unEquip(obj/item/I, force)
-	if(..(I,force))
+/mob/living/carbon/true_devil/doUnEquip(obj/item/I, force)
+	if(..())
 		update_inv_hands()
 		return 1
 	return 0
@@ -23,6 +23,7 @@
 
 		if(client && hud_used && hud_used.hud_version != HUD_STYLE_NOHUD)
 			r_hand.layer = ABOVE_HUD_LAYER
+			r_hand.plane = ABOVE_HUD_PLANE
 			r_hand.screen_loc = ui_hand_position(get_held_index_of_item(r_hand))
 			client.screen |= r_hand
 
@@ -38,6 +39,7 @@
 
 		if(client && hud_used && hud_used.hud_version != HUD_STYLE_NOHUD)
 			l_hand.layer = ABOVE_HUD_LAYER
+			l_hand.plane = ABOVE_HUD_PLANE
 			l_hand.screen_loc = ui_hand_position(get_held_index_of_item(l_hand))
 			client.screen |= l_hand
 	if(hands_overlays.len)

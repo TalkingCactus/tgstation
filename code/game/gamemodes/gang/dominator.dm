@@ -53,7 +53,7 @@
 			if(!warned && (time_remaining < 180))
 				warned = 1
 				var/area/domloc = get_area(loc)
-				gang.message_gangtools("Less than 3 minutes remain in hostile takeover. Defend your dominator at [domloc.map_name]!")
+				gang.message_gangtools("Less than 3 minutes remains in hostile takeover. Defend your dominator at [domloc.map_name]!")
 				for(var/datum/gang/G in ticker.mode.gangs)
 					if(G != gang)
 						G.message_gangtools("WARNING: [gang.name] Gang takeover imminent. Their dominator at [domloc.map_name] must be destroyed!",1,1)
@@ -162,7 +162,7 @@
 
 	var/time = round(determine_domination_time(tempgang)/60,0.1)
 	if(alert(user,"With [round((tempgang.territory.len/start_state.num_territories)*100, 1)]% station control, a takeover will require [time] minutes.\nYour gang will be unable to gain influence while it is active.\nThe entire station will likely be alerted to it once it starts.\nYou have [tempgang.dom_attempts] attempt(s) remaining. Are you ready?","Confirm","Ready","Later") == "Ready")
-		if((tempgang.is_dominating) || !tempgang.dom_attempts || !in_range(src, user) || !istype(src.loc, /turf))
+		if((tempgang.is_dominating) || !tempgang.dom_attempts || !in_range(src, user) || !isturf(loc))
 			return 0
 
 		var/area/A = get_area(loc)

@@ -3,16 +3,15 @@
 	var/obj/screen/using
 	var/obj/screen/inventory/inv_box
 
-	using = new /obj/screen/act_intent()
-	using.icon = ui_style
-	using.icon_state = mymob.a_intent
-	using.screen_loc = ui_acti
-	static_inventory += using
-	action_intent = using
+	action_intent = new /obj/screen/act_intent()
+	action_intent.icon = ui_style
+	action_intent.icon_state = mymob.a_intent
+	action_intent.screen_loc = ui_acti
+	static_inventory += action_intent
 
 	using = new /obj/screen/mov_intent()
 	using.icon = ui_style
-	using.icon_state = (mymob.m_intent == "run" ? "running" : "walking")
+	using.icon_state = (mymob.m_intent == MOVE_INTENT_RUN ? "running" : "walking")
 	using.screen_loc = ui_movi
 	static_inventory += using
 
@@ -47,6 +46,15 @@
 //	inv_box.icon_full = "template"
 	inv_box.screen_loc = ui_monkey_mask
 	inv_box.slot_id = slot_wear_mask
+	static_inventory += inv_box
+
+	inv_box = new /obj/screen/inventory()
+	inv_box.name = "neck"
+	inv_box.icon = ui_style
+	inv_box.icon_state = "neck"
+//	inv_box.icon_full = "template"
+	inv_box.screen_loc = ui_monkey_neck
+	inv_box.slot_id = slot_neck
 	static_inventory += inv_box
 
 	inv_box = new /obj/screen/inventory()
@@ -109,7 +117,7 @@
 			inv_slots[inv.slot_id] = inv
 			inv.update_icon()
 
-/datum/hud/monkey/persistant_inventory_update()
+/datum/hud/monkey/persistent_inventory_update()
 	if(!mymob)
 		return
 	var/mob/living/carbon/monkey/M = mymob
@@ -121,6 +129,9 @@
 		if(M.wear_mask)
 			M.wear_mask.screen_loc = ui_monkey_mask
 			M.client.screen += M.wear_mask
+		if(M.wear_neck)
+			M.wear_neck.screen_loc = ui_monkey_neck
+			M.client.screen += M.wear_neck
 		if(M.head)
 			M.head.screen_loc = ui_monkey_head
 			M.client.screen += M.head

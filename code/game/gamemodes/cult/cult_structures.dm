@@ -8,15 +8,16 @@
 
 /obj/structure/destructible/cult/examine(mob/user)
 	..()
-	var/can_see_cult = iscultist(user) || isobserver(user)
-	var/t_It = p_they(TRUE)
-	var/t_is = p_are()
-	if(!(resistance_flags & INDESTRUCTIBLE))
-		if(can_see_cult)
-			user << "<span class='cult'>[t_It] [t_is] at <b>[round(obj_integrity * 100 / max_integrity)]%</b> stability.</span>"
 	user << "<span class='notice'>\The [src] is [anchored ? "":"not "]secured to the floor.</span>"
-	if(can_see_cult && cooldowntime > world.time)
-		user << "<span class='cultitalic'>The magic in [src] is too weak, [t_It] will be ready to use again in [getETA()].</span>"
+	if((iscultist(user) || isobserver(user)) && cooldowntime > world.time)
+		user << "<span class='cultitalic'>The magic in [src] is too weak, [p_they()] will be ready to use again in [getETA()].</span>"
+
+/obj/structure/destructible/cult/examine_status(mob/user)
+	if(iscultist(user) || isobserver(user))
+		var/t_It = p_they(TRUE)
+		var/t_is = p_are()
+		return "<span class='cult'>[t_It] [t_is] at <b>[round(obj_integrity * 100 / max_integrity)]%</b> stability.</span>"
+	return ..()
 
 /obj/structure/destructible/cult/attack_animal(mob/living/simple_animal/M)
 	if(istype(M, /mob/living/simple_animal/hostile/construct/builder))
@@ -46,6 +47,7 @@
 		var/previouscolor = color
 		color = "#FAE48C"
 		animate(src, color = previouscolor, time = 8)
+		addtimer(CALLBACK(src, /atom/proc/update_atom_colour), 8)
 
 /obj/structure/destructible/cult/proc/getETA()
 	var/time = (cooldowntime - world.time)/600
@@ -80,7 +82,7 @@
 			pickedtype = /obj/item/clothing/glasses/night/cultblind
 		if("Flask of Unholy Water")
 			pickedtype = /obj/item/weapon/reagent_containers/food/drinks/bottle/unholywater
-	if(src && !qdeleted(src) && anchored && pickedtype && Adjacent(user) && !user.incapacitated() && iscultist(user) && cooldowntime <= world.time)
+	if(src && !QDELETED(src) && anchored && pickedtype && Adjacent(user) && !user.incapacitated() && iscultist(user) && cooldowntime <= world.time)
 		cooldowntime = world.time + 2400
 		var/obj/item/N = new pickedtype(get_turf(src))
 		user << "<span class='cultitalic'>You kneel before the altar and your faith is rewarded with an [N]!</span>"
@@ -112,7 +114,7 @@
 			pickedtype = /obj/item/clothing/suit/hooded/cultrobes/berserker
 		if("Nar-Sien Hardsuit")
 			pickedtype = /obj/item/clothing/suit/space/hardsuit/cult
-	if(src && !qdeleted(src) && anchored && pickedtype && Adjacent(user) && !user.incapacitated() && iscultist(user) && cooldowntime <= world.time)
+	if(src && !QDELETED(src) && anchored && pickedtype && Adjacent(user) && !user.incapacitated() && iscultist(user) && cooldowntime <= world.time)
 		cooldowntime = world.time + 2400
 		var/obj/item/N = new pickedtype(get_turf(src))
 		user << "<span class='cultitalic'>You work the forge as dark knowledge guides your hands, creating [N]!</span>"
@@ -153,7 +155,7 @@ var/list/blacklisted_pylon_turfs = typecacheof(list(
 		for(var/mob/living/L in range(5, src))
 			if(iscultist(L) || isshade(L) || isconstruct(L))
 				if(L.health != L.maxHealth)
-					PoolOrNew(/obj/effect/overlay/temp/heal, list(get_turf(src), "#960000"))
+					new /obj/effect/overlay/temp/heal(get_turf(src), "#960000")
 					if(ishuman(L))
 						L.adjustBruteLoss(-1, 0)
 						L.adjustFireLoss(-1, 0)
@@ -162,6 +164,8 @@ var/list/blacklisted_pylon_turfs = typecacheof(list(
 						var/mob/living/simple_animal/M = L
 						if(M.health < M.maxHealth)
 							M.adjustHealth(-1)
+				if(ishuman(L) && L.blood_volume < BLOOD_VOLUME_NORMAL)
+					L.blood_volume += 1.0
 			CHECK_TICK
 	if(last_corrupt <= world.time)
 		var/list/validturfs = list()
@@ -183,7 +187,7 @@ var/list/blacklisted_pylon_turfs = typecacheof(list(
 		else
 			var/turf/open/floor/engine/cult/F = safepick(cultturfs)
 			if(F)
-				PoolOrNew(/obj/effect/overlay/temp/cult/turf/floor, F)
+				new /obj/effect/overlay/temp/cult/turf/floor(F)
 			else
 				// Are we in space or something? No cult turfs or
 				// convertable turfs?
@@ -207,19 +211,20 @@ var/list/blacklisted_pylon_turfs = typecacheof(list(
 		user << "<span class='cultitalic'>The magic in [src] is weak, it will be ready to use again in [getETA()].</span>"
 		return
 	var/choice = alert(user,"You flip through the black pages of the archives...",,"Supply Talisman","Shuttle Curse","Veil Walker Set")
-	var/pickedtype
+	var/list/pickedtype = list()
 	switch(choice)
 		if("Supply Talisman")
-			pickedtype = /obj/item/weapon/paper/talisman/supply/weak
+			pickedtype += /obj/item/weapon/paper/talisman/supply/weak
 		if("Shuttle Curse")
-			pickedtype = /obj/item/device/shuttle_curse
+			pickedtype += /obj/item/device/shuttle_curse
 		if("Veil Walker Set")
-			pickedtype = /obj/item/device/cult_shift
-			pickedtype = /obj/item/device/flashlight/flare/culttorch
-	if(src && !qdeleted(src) && anchored && pickedtype && Adjacent(user) && !user.incapacitated() && iscultist(user) && cooldowntime <= world.time)
+			pickedtype += /obj/item/device/cult_shift
+			pickedtype += /obj/item/device/flashlight/flare/culttorch
+	if(src && !QDELETED(src) && anchored && pickedtype.len && Adjacent(user) && !user.incapacitated() && iscultist(user) && cooldowntime <= world.time)
 		cooldowntime = world.time + 2400
-		var/obj/item/N = new pickedtype(get_turf(src))
-		user << "<span class='cultitalic'>You summon [N] from the archives!</span>"
+		for(var/N in pickedtype)
+			var/obj/item/D = new N(get_turf(src))
+			user << "<span class='cultitalic'>You summon [D] from the archives!</span>"
 
 /obj/effect/gateway
 	name = "gateway"

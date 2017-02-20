@@ -9,6 +9,7 @@
 	resistance_flags = LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	max_integrity = 200
 	obj_integrity = 200 //The shield can only take so much beating (prevents perma-prisons)
+	CanAtmosPass = ATMOS_PASS_DENSITY
 
 /obj/structure/emergency_shield/New()
 	src.setDir(pick(1,2,3,4))
@@ -29,9 +30,6 @@
 /obj/structure/emergency_shield/CanPass(atom/movable/mover, turf/target, height)
 	if(!height) return 0
 	else return ..()
-
-/obj/structure/emergency_shield/CanAtmosPass(turf/T)
-	return !density
 
 /obj/structure/emergency_shield/emp_act(severity)
 	switch(severity)
@@ -61,13 +59,19 @@
 	obj_integrity = 60
 	max_integrity = 60
 
+/obj/structure/emergency_shield/sanguine/emp_act(severity)
+	return
+
 /obj/structure/emergency_shield/invoker
 	name = "Invoker's Shield"
 	desc = "A weak shield summoned by cultists to protect them while they carry out delicate rituals"
-	color = "red"
+	color = "#FF0000"
 	obj_integrity = 20
 	max_integrity = 20
 	mouse_opacity = 0
+
+/obj/structure/emergency_shield/invoker/emp_act(severity)
+	return
 
 /obj/machinery/shieldgen
 	name = "anti-breach shielding projector"
@@ -154,7 +158,7 @@
 
 /obj/machinery/shieldgen/attackby(obj/item/weapon/W, mob/user, params)
 	if(istype(W, /obj/item/weapon/screwdriver))
-		playsound(src.loc, 'sound/items/Screwdriver.ogg', 100, 1)
+		playsound(src.loc, W.usesound, 100, 1)
 		panel_open = !panel_open
 		if(panel_open)
 			user << "<span class='notice'>You open the panel and expose the wiring.</span>"
@@ -180,11 +184,11 @@
 			user << "<span class='warning'>The bolts are covered! Unlocking this would retract the covers.</span>"
 			return
 		if(!anchored && !isinspace())
-			playsound(src.loc, 'sound/items/Ratchet.ogg', 100, 1)
+			playsound(src.loc, W.usesound, 100, 1)
 			user << "<span class='notice'>You secure \the [src] to the floor!</span>"
 			anchored = 1
 		else if(anchored)
-			playsound(src.loc, 'sound/items/Ratchet.ogg', 100, 1)
+			playsound(src.loc, W.usesound, 100, 1)
 			user << "<span class='notice'>You unsecure \the [src] from the floor!</span>"
 			if(active)
 				user << "<span class='notice'>\The [src] shuts off!</span>"
@@ -376,13 +380,13 @@
 			return
 
 		else if(!anchored && !isinspace()) //Can't fasten this thing in space
-			playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
+			playsound(src.loc, W.usesound, 75, 1)
 			user << "<span class='notice'>You secure the external reinforcing bolts to the floor.</span>"
 			anchored = 1
 			return
 
 		else //You can unfasten it tough, if you somehow manage to fasten it.
-			playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
+			playsound(src.loc, W.usesound, 75, 1)
 			user << "<span class='notice'>You undo the external reinforcing bolts.</span>"
 			anchored = 0
 			return

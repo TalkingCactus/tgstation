@@ -18,7 +18,7 @@
 		user << "<span class='danger'>You unscrew the planks.</span>"
 		new floor_tile(src)
 		make_plating()
-		playsound(src, 'sound/items/Screwdriver.ogg', 80, 1)
+		playsound(src, C.usesound, 80, 1)
 		return
 
 /turf/open/floor/wood/cold
@@ -36,10 +36,9 @@
 	flags = NONE
 	var/ore_type = /obj/item/weapon/ore/glass
 
-/turf/open/floor/grass/New()
+/turf/open/floor/grass/Initialize()
 	..()
-	spawn(1)
-		update_icon()
+	update_icon()
 
 /turf/open/floor/grass/attackby(obj/item/C, mob/user, params)
 	if(istype(C, /obj/item/weapon/shovel) && params)
@@ -76,7 +75,7 @@
 	initial_gas_mix = "o2=14;n2=23;TEMP=300"
 	slowdown = 0
 
-/turf/open/floor/grass/snow/basalt/New()
+/turf/open/floor/grass/snow/basalt/Initialize()
 	..()
 	if(prob(15))
 		icon_state = "basalt[rand(0, 12)]"
@@ -96,10 +95,9 @@
 	canSmoothWith = null
 	flags = NONE
 
-/turf/open/floor/carpet/New()
+/turf/open/floor/carpet/Initialize()
 	..()
-	spawn(1)
-		update_icon()
+	update_icon()
 
 /turf/open/floor/carpet/update_icon()
 	if(!..())
@@ -123,21 +121,14 @@
 	burnt = 1
 	update_icon()
 
-/turf/open/floor/carpet/carpetsymbol
-	icon_state = "carpetsymbol"
-	smooth = SMOOTH_FALSE
-
-/turf/open/floor/carpet/carpetsymbol2
-	icon_state = "carpetstar"
-	smooth = SMOOTH_FALSE
-
 
 /turf/open/floor/fakespace
 	icon = 'icons/turf/space.dmi'
 	icon_state = "0"
 	floor_tile = /obj/item/stack/tile/fakespace
 	broken_states = list("damaged")
+	plane = PLANE_SPACE
 
-/turf/open/floor/fakespace/New()
+/turf/open/floor/fakespace/Initialize()
 	..()
 	icon_state = "[rand(0,25)]"

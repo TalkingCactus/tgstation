@@ -12,6 +12,7 @@
 	max_integrity = 600
 	armor = list(melee = 50, bullet = 100, laser = 100, energy = 100, bomb = 50, bio = 100, rad = 100, fire = 100, acid = 70)
 	resistance_flags = FIRE_PROOF
+	damage_deflection = 70
 
 /obj/machinery/door/poddoor/preopen
 	icon_state = "open"
@@ -23,14 +24,15 @@
 
 //special poddoors that open when emergency shuttle docks at centcom
 /obj/machinery/door/poddoor/shuttledock
-	var/checkdir = 4	//door won't open if turf in this dir is space
+	var/checkdir = 4	//door won't open if turf in this dir is `turftype`
+	var/turftype = /turf/open/space
 
 /obj/machinery/door/poddoor/shuttledock/proc/check()
 	var/turf/T = get_step(src, checkdir)
-	if(!isspaceturf(T))
-		addtimer(src, "open", 0, TRUE)
+	if(!istype(T, turftype))
+		INVOKE_ASYNC(src, .proc/open)
 	else
-		addtimer(src, "close", 0, TRUE)
+		INVOKE_ASYNC(src, .proc/close)
 
 /obj/machinery/door/poddoor/Bumped(atom/AM)
 	if(density)
@@ -43,11 +45,6 @@
 	if(severity == 3)
 		return
 	..()
-
-/obj/machinery/door/poddoor/run_obj_armor(damage_amount, damage_type, damage_flag = 0, attack_dir)
-	if(damage_flag == "melee" && damage_amount < 70) //any melee attack below 70 dmg does nothing
-		return 0
-	. = ..()
 
 /obj/machinery/door/poddoor/do_animate(animation)
 	switch(animation)
@@ -65,6 +62,6 @@
 /obj/machinery/door/poddoor/try_to_activate_door(mob/user)
  	return
 
-obj/machinery/door/poddoor/try_to_crowbar(obj/item/I, mob/user)
+/obj/machinery/door/poddoor/try_to_crowbar(obj/item/I, mob/user)
 	if(stat & NOPOWER)
 		open(1)

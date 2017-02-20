@@ -3,7 +3,6 @@
 	icon = 'icons/obj/stock_parts.dmi'
 	icon_state = "box_0"
 	density = 1
-	anchored = 1
 	obj_integrity = 250
 	max_integrity = 250
 	var/obj/item/weapon/circuitboard/circuit = null
@@ -87,7 +86,7 @@
 				if(C.get_amount() >= 5)
 					playsound(src.loc, 'sound/items/Deconstruct.ogg', 50, 1)
 					user << "<span class='notice'>You start to add cables to the frame...</span>"
-					if(do_after(user, 20/P.toolspeed, target = src))
+					if(do_after(user, 20*P.toolspeed, target = src))
 						if(C.get_amount() >= 5 && state == 1)
 							C.use(5)
 							user << "<span class='notice'>You add cables to the frame.</span>"
@@ -97,10 +96,10 @@
 					user << "<span class='warning'>You need five length of cable to wire the frame!</span>"
 				return
 			if(istype(P, /obj/item/weapon/screwdriver) && !anchored)
-				playsound(src.loc, 'sound/items/Screwdriver.ogg', 50, 1)
+				playsound(src.loc, P.usesound, 50, 1)
 				user.visible_message("<span class='warning'>[user] disassembles the frame.</span>", \
 									"<span class='notice'>You start to disassemble the frame...</span>", "You hear banging and clanking.")
-				if(do_after(user, 40/P.toolspeed, target = src))
+				if(do_after(user, 40*P.toolspeed, target = src))
 					if(state == 1)
 						user << "<span class='notice'>You disassemble the frame.</span>"
 						var/obj/item/stack/sheet/metal/M = new (loc, 5)
@@ -109,8 +108,8 @@
 				return
 			if(istype(P, /obj/item/weapon/wrench))
 				user << "<span class='notice'>You start [anchored ? "un" : ""]securing [name]...</span>"
-				playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
-				if(do_after(user, 40/P.toolspeed, target = src))
+				playsound(src.loc, P.usesound, 75, 1)
+				if(do_after(user, 40*P.toolspeed, target = src))
 					if(state == 1)
 						user << "<span class='notice'>You [anchored ? "un" : ""]secure [name].</span>"
 						anchored = !anchored
@@ -119,8 +118,8 @@
 		if(2)
 			if(istype(P, /obj/item/weapon/wrench))
 				user << "<span class='notice'>You start [anchored ? "un" : ""]securing [name]...</span>"
-				playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
-				if(do_after(user, 40/P.toolspeed, target = src))
+				playsound(src.loc, P.usesound, 75, 1)
+				if(do_after(user, 40*P.toolspeed, target = src))
 					user << "<span class='notice'>You [anchored ? "un" : ""]secure [name].</span>"
 					anchored = !anchored
 				return
@@ -148,7 +147,7 @@
 				return
 
 			if(istype(P, /obj/item/weapon/wirecutters))
-				playsound(src.loc, 'sound/items/Wirecutter.ogg', 50, 1)
+				playsound(src.loc, P.usesound, 50, 1)
 				user << "<span class='notice'>You remove the cables.</span>"
 				state = 1
 				icon_state = "box_0"
@@ -158,7 +157,7 @@
 
 		if(3)
 			if(istype(P, /obj/item/weapon/crowbar))
-				playsound(src.loc, 'sound/items/Crowbar.ogg', 50, 1)
+				playsound(src.loc, P.usesound, 50, 1)
 				state = 2
 				circuit.loc = src.loc
 				components.Remove(circuit)
@@ -182,7 +181,7 @@
 						component_check = 0
 						break
 				if(component_check)
-					playsound(src.loc, 'sound/items/Screwdriver.ogg', 50, 1)
+					playsound(src.loc, P.usesound, 50, 1)
 					var/obj/machinery/new_machine = new src.circuit.build_path(src.loc, 1)
 					new_machine.on_construction()
 					for(var/obj/O in new_machine.component_parts)
@@ -250,7 +249,7 @@
 						return 1
 				user << "<span class='warning'>You cannot add that to the machine!</span>"
 				return 0
-	if(user.a_intent == "harm")
+	if(user.a_intent == INTENT_HARM)
 		return ..()
 
 

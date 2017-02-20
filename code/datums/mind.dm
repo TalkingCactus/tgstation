@@ -61,6 +61,7 @@
 	var/datum/devilinfo/devilinfo //Information about the devil, if any.
 	var/damnation_type = 0
 	var/datum/mind/soulOwner //who owns the soul.  Under normal circumstances, this will point to src
+	var/isholy = FALSE //is this person a chaplain or admin role allowed to use bibles
 
 	var/mob/living/enslaved_to //If this mind's master is another mob (i.e. adamantine golems)
 
@@ -88,9 +89,11 @@
 			var/datum/antagonist/D = i
 			D.transfer_to_new_body(new_character)
 	var/datum/atom_hud/antag/hud_to_transfer = antag_hud//we need this because leave_hud() will clear this list
-	leave_all_huds()									//leave all the huds in the old body, so it won't get huds if somebody else enters it
 	current = new_character								//associate ourself with our new body
 	new_character.mind = src							//and associate our new body with ourself
+	if(iscarbon(new_character))
+		var/mob/living/carbon/C = new_character
+		C.last_mind = src
 	transfer_antag_huds(hud_to_transfer)				//inherit the antag HUD
 	transfer_actions(new_character)
 
@@ -297,7 +300,7 @@
 			text += " <a href='?src=\ref[src];revolution=reequip'>Reequip</a> (gives traitor uplink)."
 			if (objectives.len==0)
 				text += "<br>Objectives are empty! <a href='?src=\ref[src];revolution=autoobjectives'>Set to kill all heads</a>."
-		else if(isloyal(current))
+		else if(current.isloyal())
 			text += "head|<b>LOYAL</b>|employee|<a href='?src=\ref[src];revolution=headrev'>headrev</a>|rev"
 		else if (src in ticker.mode.revolutionaries)
 			text += "head|loyal|<a href='?src=\ref[src];revolution=clear'>employee</a>|<a href='?src=\ref[src];revolution=headrev'>headrev</a>|<b>REV</b>"
@@ -316,7 +319,7 @@
 		if (ticker.mode.config_tag=="gang")
 			text = uppertext(text)
 		text = "<i><b>[text]</b></i>: "
-		text += "[isloyal(current) ? "<B>LOYAL</B>" : "loyal"]|"
+		text += "[current.isloyal() ? "<B>LOYAL</B>" : "loyal"]|"
 		if(src in ticker.mode.get_all_gangsters())
 			text += "<a href='?src=\ref[src];gang=clear'>none</a>"
 		else
@@ -423,7 +426,7 @@
 		text += "loyal|<a href='?src=\ref[src];cult=clear'>employee</a>|<b>CULTIST</b>"
 		text += "<br>Give <a href='?src=\ref[src];cult=tome'>tome</a>|<a href='?src=\ref[src];cult=amulet'>amulet</a>."
 
-	else if(isloyal(current))
+	else if(current.isloyal())
 		text += "<b>LOYAL</b>|employee|<a href='?src=\ref[src];cult=cultist'>cultist</a>"
 	else if(is_convertable_to_cult(current))
 		text += "loyal|<b>EMPLOYEE</b>|<a href='?src=\ref[src];cult=cultist'>cultist</a>"
@@ -445,7 +448,7 @@
 	if(is_servant_of_ratvar(current))
 		text += "loyal|<a href='?src=\ref[src];clockcult=clear'>employee</a>|<b>SERVANT</b>"
 		text += "<br><a href='?src=\ref[src];clockcult=slab'>Give slab</a>"
-	else if(isloyal(current))
+	else if(current.isloyal())
 		text += "<b>LOYAL</b>|employee|<a href='?src=\ref[src];clockcult=servant'>servant</a>"
 	else if(is_eligible_servant(current))
 		text += "loyal|<b>EMPLOYEE</b>|<a href='?src=\ref[src];clockcult=servant'>servant</a>"
@@ -1101,21 +1104,24 @@
 			if("clear")
 				if(src in ticker.mode.devils)
 					if(istype(current,/mob/living/carbon/true_devil/))
-						usr << "<span class='warning'>This cannot be used on true or arch-devils.</span>"
-					else
-						ticker.mode.devils -= src
-						special_role = null
-						current << "<span class='userdanger'>Your infernal link has been severed! You are no longer a devil!</span>"
-						RemoveSpell(/obj/effect/proc_holder/spell/targeted/infernal_jaunt)
-						RemoveSpell(/obj/effect/proc_holder/spell/fireball/hellish)
-						RemoveSpell(/obj/effect/proc_holder/spell/targeted/summon_contract)
-						RemoveSpell(/obj/effect/proc_holder/spell/targeted/summon_pitchfork)
-						message_admins("[key_name_admin(usr)] has de-devil'ed [current].")
-						devilinfo = null
-						if(issilicon(current))
-							var/mob/living/silicon/S = current
-							S.clear_law_sixsixsix(current)
-						log_admin("[key_name(usr)] has de-devil'ed [current].")
+						if(devilinfo)
+							devilinfo.regress_blood_lizard()
+						else
+							usr << "<span class='warning'>Something went wrong with removing the devil, we were unable to find an attached devilinfo.</span>."
+					ticker.mode.devils -= src
+					special_role = null
+					current << "<span class='userdanger'>Your infernal link has been severed! You are no longer a devil!</span>"
+					RemoveSpell(/obj/effect/proc_holder/spell/targeted/infernal_jaunt)
+					RemoveSpell(/obj/effect/proc_holder/spell/aimed/fireball/hellish)
+					RemoveSpell(/obj/effect/proc_holder/spell/targeted/summon_contract)
+					RemoveSpell(/obj/effect/proc_holder/spell/targeted/conjure_item/summon_pitchfork)
+					RemoveSpell(/obj/effect/proc_holder/spell/targeted/conjure_item/violin)
+					message_admins("[key_name_admin(usr)] has de-devil'ed [current].")
+					devilinfo = null
+					if(issilicon(current))
+						var/mob/living/silicon/S = current
+						S.clear_law_sixsixsix(current)
+					log_admin("[key_name(usr)] has de-devil'ed [current].")
 				else if(src in ticker.mode.sintouched)
 					ticker.mode.sintouched -= src
 					message_admins("[key_name_admin(usr)] has de-sintouch'ed [current].")
@@ -1231,7 +1237,7 @@
 		switch(href_list["common"])
 			if("undress")
 				for(var/obj/item/W in current)
-					current.unEquip(W, 1) //The 1 forces all items to drop, since this is an admin undress.
+					current.dropItemToGround(W, TRUE) //The 1 forces all items to drop, since this is an admin undress.
 			if("takeuplink")
 				take_uplink()
 				memory = null//Remove any memory they may have had.
@@ -1489,7 +1495,7 @@
 			if(istype(S, type))
 				continue
 		S.charge_counter = delay
-		addtimer(S, "start_recharge", 0)
+		INVOKE_ASYNC(S, /obj/effect/proc_holder/spell.proc/start_recharge)
 
 /datum/mind/proc/get_ghost(even_if_they_cant_reenter)
 	for(var/mob/dead/observer/G in dead_mob_list)
@@ -1529,6 +1535,10 @@
 	if(!mind.name)
 		mind.name = real_name
 	mind.current = src
+
+/mob/living/carbon/mind_initialize()
+	..()
+	last_mind = mind
 
 //HUMAN
 /mob/living/carbon/human/mind_initialize()

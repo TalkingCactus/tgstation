@@ -60,7 +60,7 @@
 	if(istype(W, /obj/item/weapon/crowbar))
 		playsound(src.loc, 'sound/machines/click.ogg', 50, 1)
 		user.visible_message("[user] begins to take the glass off the solar panel.", "<span class='notice'>You begin to take the glass off the solar panel...</span>")
-		if(do_after(user, 50/W.toolspeed, target = src))
+		if(do_after(user, 50*W.toolspeed, target = src))
 			playsound(src.loc, 'sound/items/Deconstruct.ogg', 50, 1)
 			user.visible_message("[user] takes the glass off the solar panel.", "<span class='notice'>You take the glass off the solar panel.</span>")
 			deconstruct(TRUE)
@@ -184,7 +184,7 @@
 	icon = 'icons/obj/power.dmi'
 	icon_state = "sp_base"
 	item_state = "electropack"
-	w_class = 4 // Pretty big!
+	w_class = WEIGHT_CLASS_BULKY // Pretty big!
 	anchored = 0
 	var/tracker = 0
 	var/glass_type = null
@@ -212,10 +212,10 @@
 		anchored = !anchored
 		if(anchored)
 			user.visible_message("[user] wrenches the solar assembly into place.", "<span class='notice'>You wrench the solar assembly into place.</span>")
-			playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
+			playsound(src.loc, W.usesound, 75, 1)
 		else
 			user.visible_message("[user] unwrenches the solar assembly from its place.", "<span class='notice'>You unwrench the solar assembly from its place.</span>")
-			playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
+			playsound(src.loc, W.usesound, 75, 1)
 		return 1
 
 	if(istype(W, /obj/item/stack/sheet/glass) || istype(W, /obj/item/stack/sheet/rglass))
@@ -277,15 +277,14 @@
 	var/lastgen = 0
 	var/track = 0			// 0= off  1=timed  2=auto (tracker)
 	var/trackrate = 600		// 300-900 seconds
-	var/nexttime = 0		// time for a panel to rotate of 1° in manual tracking
+	var/nexttime = 0		// time for a panel to rotate of 1 degree in manual tracking
 	var/obj/machinery/power/tracker/connected_tracker = null
 	var/list/connected_panels = list()
 
-
-/obj/machinery/power/solar_control/New()
+/obj/machinery/power/solar_control/Initialize()
 	..()
-	if(ticker)
-		initialize()
+	if(powernet)
+		set_panels(currentdir)
 	connect_to_network()
 
 /obj/machinery/power/solar_control/Destroy()
@@ -334,12 +333,6 @@
 
 	set_panels(currentdir)
 	updateDialog()
-
-
-/obj/machinery/power/solar_control/initialize()
-	..()
-	if(!powernet) return
-	set_panels(currentdir)
 
 /obj/machinery/power/solar_control/update_icon()
 	cut_overlays()
@@ -416,8 +409,8 @@
 
 /obj/machinery/power/solar_control/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/weapon/screwdriver))
-		playsound(src.loc, 'sound/items/Screwdriver.ogg', 50, 1)
-		if(do_after(user, 20/I.toolspeed, target = src))
+		playsound(src.loc, I.usesound, 50, 1)
+		if(do_after(user, 20*I.toolspeed, target = src))
 			if (src.stat & BROKEN)
 				user << "<span class='notice'>The broken glass falls out.</span>"
 				var/obj/structure/frame/computer/A = new /obj/structure/frame/computer( src.loc )
@@ -441,7 +434,7 @@
 				A.icon_state = "4"
 				A.anchored = 1
 				qdel(src)
-	else if(user.a_intent != "harm" && !(I.flags & NOBLUDGEON))
+	else if(user.a_intent != INTENT_HARM && !(I.flags & NOBLUDGEON))
 		src.attack_hand(user)
 	else
 		return ..()
@@ -474,9 +467,9 @@
 			connected_tracker.unset_control()
 
 	if(track==1 && trackrate) //manual tracking and set a rotation speed
-		if(nexttime <= world.time) //every time we need to increase/decrease the angle by 1°...
+		if(nexttime <= world.time) //every time we need to increase/decrease the angle by 1ï¿½...
 			targetdir = (targetdir + trackrate/abs(trackrate) + 360) % 360 	//... do it
-			nexttime += 36000/abs(trackrate) //reset the counter for the next 1°
+			nexttime += 36000/abs(trackrate) //reset the counter for the next 1ï¿½
 
 //rotates the panel to the passed angle
 /obj/machinery/power/solar_control/proc/set_panels(currentdir)

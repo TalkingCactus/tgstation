@@ -124,7 +124,8 @@
 /obj/structure/disposalholder/allow_drop()
 	return 1
 
-
+/obj/structure/disposalholder/ex_act(severity, target)
+	return
 
 // Disposal pipes
 
@@ -149,7 +150,7 @@
 /obj/structure/disposalpipe/New(loc,var/obj/structure/disposalconstruct/make_from)
 	..()
 
-	if(make_from && !qdeleted(make_from))
+	if(make_from && !QDELETED(make_from))
 		base_icon_state = make_from.base_state
 		setDir(make_from.dir)
 		dpdir = make_from.dpdir
@@ -253,7 +254,7 @@
 	if(isfloorturf(T)) //intact floor, pop the tile
 		floorturf = T
 		if(floorturf.floor_tile)
-			PoolOrNew(floorturf.floor_tile, T)
+			new floorturf.floor_tile(T)
 		floorturf.make_plating()
 
 	if(direction)		// direction is specified
@@ -272,32 +273,22 @@
 		AM.forceMove(src.loc)
 		AM.pipe_eject(direction)
 		if(target)
-			AM.throw_at_fast(target, eject_range, 1)
+			AM.throw_at(target, eject_range, 1)
 	H.vent_gas(T)
 	qdel(H)
 
 
 // pipe affected by explosion
-/obj/structure/disposalpipe/ex_act(severity, target)
-
-	//pass on ex_act to our contents before calling it on ourself
+/obj/structure/disposalpipe/contents_explosion(severity, target)
 	var/obj/structure/disposalholder/H = locate() in src
 	if(H)
 		H.contents_explosion(severity, target)
-	..()
 
 
 /obj/structure/disposalpipe/run_obj_armor(damage_amount, damage_type, damage_flag = 0, attack_dir)
 	if(damage_flag == "melee" && damage_amount < 10)
 		return 0
 	. = ..()
-
-/obj/structure/disposalpipe/fire_act(exposed_temperature, exposed_volume)
-	var/turf/T = src.loc
-	if(T && T.intact) //protected from fire when hidden behind a floor.
-		return
-	..()
-
 
 //attack by item
 //weldingtool: unfasten and convert to obj/disposalconstruct
@@ -692,7 +683,7 @@
 		for(var/atom/movable/AM in H)
 			AM.forceMove(T)
 			AM.pipe_eject(dir)
-			AM.throw_at_fast(target, eject_range, 1)
+			AM.throw_at(target, eject_range, 1)
 
 		H.vent_gas(T)
 		qdel(H)
@@ -703,11 +694,11 @@
 	if(istype(I, /obj/item/weapon/screwdriver))
 		if(mode==0)
 			mode=1
-			playsound(src.loc, 'sound/items/Screwdriver.ogg', 50, 1)
+			playsound(src.loc, I.usesound, 50, 1)
 			user << "<span class='notice'>You remove the screws around the power connection.</span>"
 		else if(mode==1)
 			mode=0
-			playsound(src.loc, 'sound/items/Screwdriver.ogg', 50, 1)
+			playsound(src.loc, I.usesound, 50, 1)
 			user << "<span class='notice'>You attach the screws around the power connection.</span>"
 
 	else if(istype(I,/obj/item/weapon/weldingtool) && mode==1)
@@ -715,7 +706,7 @@
 		if(W.remove_fuel(0,user))
 			playsound(src.loc, 'sound/items/Welder2.ogg', 100, 1)
 			user << "<span class='notice'>You start slicing the floorweld off \the [src]...</span>"
-			if(do_after(user,20/I.toolspeed, target = src))
+			if(do_after(user,20*I.toolspeed, target = src))
 				if(!src || !W.isOn()) return
 				user << "<span class='notice'>You slice the floorweld off \the [src].</span>"
 				stored.loc = loc

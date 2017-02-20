@@ -28,7 +28,7 @@
 
 /obj/item/weapon/paper/contract/employment/update_text()
 	name = "paper- [target] employment contract"
-	info = "<center>Conditions of Employment</center><BR><BR><BR><BR>This Agreement is made and entered into as of the date of last signature below, by and between [target] (hereafter referred to as SLAVE), and Nanotrasen (hereafter referred to as the omnipresent and helpful watcher of humanity).<BR>WITNESSETH:<BR>WHEREAS, SLAVE is a natural born human or humanoid, posessing skills upon which he can aid the omnipresent and helpful watcher of humanity, who seeks employment in the omnipresent and helpful watcher of humanity.<BR>WHEREAS, the omnipresent and helpful watcher of humanity agrees to sporadically provide payment to SLAVE, in exchange for permanant servitude.<BR>NOW THEREFORE in consideration of the mutual covenants herein contained, and other good and valuable consideration, the parties hereto mutually agree as follows:<BR>In exchange for paltry payments, SLAVE agrees to work for the omnipresent and helpful watcher of humanity, for the remainder of his or her current and future lives.<BR>Further, SLAVE agrees to transfer ownership of his or her soul to the loyalty department of the omnipresent and helpful watcher of humanity.<BR>Should transfership of a soul not be possible, a lien shall be placed instead.<BR>Signed,<BR><i>[target]</i>"
+	info = "<center>Conditions of Employment</center><BR><BR><BR><BR>This Agreement is made and entered into as of the date of last signature below, by and between [target] (hereafter referred to as SLAVE), and Nanotrasen (hereafter referred to as the omnipresent and helpful watcher of humanity).<BR>WITNESSETH:<BR>WHEREAS, SLAVE is a natural born human or humanoid, posessing skills upon which he can aid the omnipresent and helpful watcher of humanity, who seeks employment in the omnipresent and helpful watcher of humanity.<BR>WHEREAS, the omnipresent and helpful watcher of humanity agrees to sporadically provide payment to SLAVE, in exchange for permanent servitude.<BR>NOW THEREFORE in consideration of the mutual covenants herein contained, and other good and valuable consideration, the parties hereto mutually agree as follows:<BR>In exchange for paltry payments, SLAVE agrees to work for the omnipresent and helpful watcher of humanity, for the remainder of his or her current and future lives.<BR>Further, SLAVE agrees to transfer ownership of his or her soul to the loyalty department of the omnipresent and helpful watcher of humanity.<BR>Should transfership of a soul not be possible, a lien shall be placed instead.<BR>Signed,<BR><i>[target]</i>"
 
 
 /obj/item/weapon/paper/contract/employment/attack(mob/living/M, mob/living/carbon/human/user)
@@ -78,6 +78,7 @@
 /obj/item/weapon/paper/contract/infernal/revive
 	name = "paper- contract of resurrection"
 	contractType = CONTRACT_REVIVE
+	var/cooldown = FALSE
 
 /obj/item/weapon/paper/contract/infernal/knowledge
 	name = "paper- contract for knowledge"
@@ -93,13 +94,13 @@
 	target = nTarget
 	update_text()
 
-/obj/item/weapon/paper/contract/infernal/
+/obj/item/weapon/paper/contract/infernal
 
 /obj/item/weapon/paper/contract/infernal/suicide_act(mob/user)
 	if(signed && (user == target.current) && istype(user,/mob/living/carbon/human/))
 		var/mob/living/carbon/human/H = user
 		H.forcesay("OH GREAT INFERNO!  I DEMAND YOU COLLECT YOUR BOUNTY IMMEDIATELY!")
-		H.visible_message("<span class='suicide'>[H] holds up a contract claiming his soul, then immediately catches fire.  It looks like \he's trying to commit suicide!</span>")
+		H.visible_message("<span class='suicide'>[H] holds up a contract claiming [user.p_their()] soul, then immediately catches fire.  It looks like [user.p_theyre()] trying to commit suicide!</span>")
 		H.adjust_fire_stacks(20)
 		H.IgniteMob()
 		return(FIRELOSS)
@@ -203,6 +204,10 @@
 
 /obj/item/weapon/paper/contract/infernal/revive/attack(mob/M, mob/living/user)
 	if (target == M.mind && M.stat == DEAD && M.mind.soulOwner == M.mind)
+		if (cooldown)
+			user << "<span class='notice'>Give [M] a chance to think through the contract, don't rush him.</span>"
+			return 0
+		cooldown = TRUE
 		var/mob/living/carbon/human/H = M
 		var/mob/dead/observer/ghost = H.get_ghost()
 		var/response = "No"
@@ -219,9 +224,13 @@
 			user.visible_message("<span class='notice'>With a sudden blaze, [H] stands back up.</span>")
 			H.fakefire()
 			FulfillContract(H, 1)//Revival contracts are always signed in blood
-			addtimer(H, "fakefireextinguish",5,TRUE)
+			addtimer(CALLBACK(H, /mob/living/carbon/human.proc/fakefireextinguish), 5, TIMER_UNIQUE)
+		addtimer(CALLBACK(src, "resetcooldown"), 300, TIMER_UNIQUE)
 	else
 		..()
+
+/obj/item/weapon/paper/contract/infernal/revive/proc/resetcooldown()
+	cooldown = FALSE
 
 
 /obj/item/weapon/paper/contract/infernal/proc/FulfillContract(mob/living/carbon/human/user = target.current, blood = 0)
@@ -283,7 +292,7 @@
 /obj/item/weapon/paper/contract/infernal/magic/FulfillContract(mob/living/carbon/human/user = target.current, blood = 0)
 	if(!istype(user) || !user.mind)
 		return -1
-	user.mind.AddSpell(new /obj/effect/proc_holder/spell/fireball(null))
+	user.mind.AddSpell(new /obj/effect/proc_holder/spell/aimed/fireball(null))
 	user.mind.AddSpell(new /obj/effect/proc_holder/spell/aoe_turf/knock(null))
 	return ..()
 

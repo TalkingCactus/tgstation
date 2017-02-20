@@ -7,6 +7,7 @@
 	obj_integrity = 100
 	max_integrity = 100
 	armor = list(melee = 50, bullet = 0, laser = 0, energy = 0, bomb = 0, bio = 0, rad = 0, fire = 50, acid = 50)
+	var/buildable_sign = 1 //unwrenchable and modifiable
 
 /obj/structure/sign/basic
 	name = "blank sign"
@@ -24,11 +25,11 @@
 			playsound(loc, 'sound/items/welder.ogg', 80, 1)
 
 /obj/structure/sign/attackby(obj/item/O, mob/user, params)
-	if(istype(O, /obj/item/weapon/wrench))
+	if(istype(O, /obj/item/weapon/wrench) && buildable_sign)
 		user.visible_message("<span class='notice'>[user] starts removing [src]...</span>", \
 							 "<span class='notice'>You start unfastening [src].</span>")
-		playsound(src, 'sound/items/Ratchet.ogg', 50, 1)
-		if(!do_after(user, 30/O.toolspeed, target = src))
+		playsound(src, O.usesound, 50, 1)
+		if(!do_after(user, 30*O.toolspeed, target = src))
 			return
 		playsound(src, 'sound/items/Deconstruct.ogg', 50, 1)
 		user.visible_message("<span class='notice'>[user] unfastens [src].</span>", \
@@ -37,7 +38,7 @@
 		SB.icon_state = icon_state
 		SB.sign_path = type
 		qdel(src)
-	else if(istype(O, /obj/item/weapon/pen))
+	else if(istype(O, /obj/item/weapon/pen) && buildable_sign)
 		var/list/sign_types = list("Secure Area", "Biohazard", "High Voltage", "Radiation", "Hard Vacuum Ahead", "Disposal: Leads To Space", "Danger: Fire", "No Smoking", "Medbay", "Science", "Chemistry", \
 		"Hydroponics", "Xenobiology")
 		var/obj/structure/sign/sign_type
@@ -93,7 +94,7 @@
 	desc = "A sign with adhesive backing."
 	icon = 'icons/obj/decals.dmi'
 	icon_state = "backing"
-	w_class = 3
+	w_class = WEIGHT_CLASS_NORMAL
 	resistance_flags = FLAMMABLE
 	var/sign_path = /obj/structure/sign/basic //the type of sign that will be created when placed on a turf
 
@@ -101,7 +102,7 @@
 	if(isturf(target) && proximity)
 		var/turf/T = target
 		user.visible_message("<span class='notice'>[user] fastens [src] to [T].</span>", \
-							 "<span class='notice'>You attach a blank sign to [T].</span>")
+							 "<span class='notice'>You attach the sign to [T].</span>")
 		playsound(T, 'sound/items/Deconstruct.ogg', 50, 1)
 		new sign_path(T)
 		user.drop_item()
@@ -264,5 +265,3 @@
 	name = "escape arm"
 	desc = "A direction sign, pointing out which way the escape shuttle dock is."
 	icon_state = "direction_evac"
-
-

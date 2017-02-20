@@ -1,4 +1,4 @@
-//This file was auto-corrected by findeclaration.exe on 25.5.2012 20:42:32
+
 
 //NOTE: Breathing happens once per FOUR TICKS, unless the last breath fails. In which case it happens once per ONE TICK! So oxyloss healing is done once per 4 ticks while oxyloss damage is applied once per tick!
 
@@ -91,92 +91,47 @@
 /mob/living/carbon/human/breathe()
 	if(!dna.species.breathe(src))
 		..()
-
+#define HUMAN_MAX_OXYLOSS 3
+#define HUMAN_CRIT_MAX_OXYLOSS (SSmob.wait/30)
 /mob/living/carbon/human/check_breath(datum/gas_mixture/breath)
-	dna.species.check_breath(breath, src)
+
+	var/L = getorganslot("lungs")
+
+	if(!L)
+		if(health >= HEALTH_THRESHOLD_CRIT)
+			adjustOxyLoss(HUMAN_MAX_OXYLOSS + 1)
+		else if(!(NOCRITDAMAGE in dna.species.species_traits))
+			adjustOxyLoss(HUMAN_CRIT_MAX_OXYLOSS)
+
+		failed_last_breath = 1
+
+		if(dna && dna.species)
+			var/datum/species/S = dna.species
+
+			if(S.breathid == "o2")
+				throw_alert("oxy", /obj/screen/alert/oxy)
+			else if(S.breathid == "tox")
+				throw_alert("not_enough_tox", /obj/screen/alert/not_enough_tox)
+			else if(S.breathid == "co2")
+				throw_alert("not_enough_co2", /obj/screen/alert/not_enough_co2)
+
+		return 0
+	else
+		if(istype(L,/obj/item/organ/lungs))
+			var/obj/item/organ/lungs/lun = L
+			lun.check_breath(breath,src)
+
+#undef HUMAN_MAX_OXYLOSS
+#undef HUMAN_CRIT_MAX_OXYLOSS
 
 /mob/living/carbon/human/handle_environment(datum/gas_mixture/environment)
 	dna.species.handle_environment(environment, src)
 
 ///FIRE CODE
 /mob/living/carbon/human/handle_fire()
-	if(!dna || !dna.species.handle_fire(src))
-		..()
-	if(on_fire)
-
-		//the fire tries to damage the exposed clothes and items
-		var/list/burning_items = list()
-		//HEAD//
-		var/obj/item/clothing/head_clothes = null
-		if(glasses)
-			head_clothes = glasses
-		if(wear_mask)
-			head_clothes = wear_mask
-		if(head)
-			head_clothes = head
-		if(head_clothes)
-			burning_items += head_clothes
-		else if(ears)
-			burning_items += ears
-
-		//CHEST//
-		var/obj/item/clothing/chest_clothes = null
-		if(w_uniform)
-			chest_clothes = w_uniform
-		if(wear_suit)
-			chest_clothes = wear_suit
-		else
-			if(wear_id)
-				burning_items += wear_id
-			if(r_store)
-				burning_items += r_store
-			if(l_store)
-				burning_items += l_store
-			if(s_store)
-				burning_items += s_store
-		if(chest_clothes)
-			burning_items += chest_clothes
-
-		//ARMS & HANDS//
-		var/obj/item/clothing/arm_clothes = null
-		if(gloves)
-			arm_clothes = gloves
-		if(w_uniform && ((w_uniform.body_parts_covered & HANDS) || (w_uniform.body_parts_covered & ARMS)))
-			arm_clothes = w_uniform
-		if(wear_suit && ((wear_suit.body_parts_covered & HANDS) || (wear_suit.body_parts_covered & ARMS)))
-			arm_clothes = wear_suit
-		if(arm_clothes)
-			burning_items += arm_clothes
-
-		//LEGS & FEET//
-		var/obj/item/clothing/leg_clothes = null
-		if(shoes)
-			leg_clothes = shoes
-		if(w_uniform && ((w_uniform.body_parts_covered & FEET) || (w_uniform.body_parts_covered & LEGS)))
-			leg_clothes = w_uniform
-		if(wear_suit && ((wear_suit.body_parts_covered & FEET) || (wear_suit.body_parts_covered & LEGS)))
-			leg_clothes = wear_suit
-		if(leg_clothes)
-			burning_items += leg_clothes
-
-		if(back)
-			burning_items += back
-		if(belt)
-			burning_items += belt
-
-		for(var/X in burning_items)
-			var/obj/item/I = X
-			if(!(I.resistance_flags & FIRE_PROOF))
-				I.take_damage(fire_stacks, BURN, "fire", 0)
-
-		var/thermal_protection = get_thermal_protection()
-
-		if(thermal_protection >= FIRE_IMMUNITY_SUIT_MAX_TEMP_PROTECT)
-			return
-		if(thermal_protection >= FIRE_SUIT_MAX_TEMP_PROTECT)
-			bodytemperature += 11
-		else
-			bodytemperature += (BODYTEMP_HEATING_MAX + (fire_stacks * 12))
+	..()
+	if(dna)
+		dna.species.handle_fire(src)
 
 /mob/living/carbon/human/proc/get_thermal_protection()
 	var/thermal_protection = 0 //Simple check to estimate how protected we are against multiple temperatures
@@ -289,7 +244,7 @@
 	if(dna.check_mutation(COLDRES))
 		return 1 //Fully protected from the cold.
 
-	if(dna && (RESISTTEMP in dna.species.specflags))
+	if(dna && (RESISTCOLD in dna.species.species_traits))
 		return 1
 
 	temperature = max(temperature, 2.7) //There is an occasional bug where the temperature is miscalculated in ares with a small amount of gas on them, so this is necessary to ensure that that bug does not affect this calculation. Space's temperature is 2.7K and most suits that are intended to protect against any cold, protect down to 2.0K.
@@ -349,7 +304,7 @@
 	if(head)
 		if(head.flags & BLOCK_GAS_SMOKE_EFFECT)
 			. = 1
-	if(NOBREATH in dna.species.specflags)
+	if(NOBREATH in dna.species.species_traits)
 		. = 1
 	return .
 
@@ -373,8 +328,8 @@
 
 /mob/living/carbon/human/proc/handle_heart()
 	CHECK_DNA_AND_SPECIES(src)
-	var/needs_heart = (!(NOBLOOD in dna.species.specflags))
-	var/we_breath = (!(NOBREATH in dna.species.specflags))
+	var/needs_heart = (!(NOBLOOD in dna.species.species_traits))
+	var/we_breath = (!(NOBREATH in dna.species.species_traits))
 
 	if(heart_attack)
 		if(!needs_heart)

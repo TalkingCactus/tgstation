@@ -7,7 +7,8 @@
 	amount_per_transfer_from_this = 5
 	volume = 30
 	possible_transfer_amounts = list()
-	flags = OPENCONTAINER
+	resistance_flags = ACID_PROOF
+	container_type = OPENCONTAINER
 	slot_flags = SLOT_BELT
 	var/ignore_flags = 0
 	var/infinite = FALSE
@@ -46,6 +47,7 @@
 
 /obj/item/weapon/reagent_containers/hypospray/CMO
 	list_reagents = list("omnizine" = 30)
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | ACID_PROOF
 
 /obj/item/weapon/reagent_containers/hypospray/combat
 	name = "combat stimulant injector"
@@ -79,6 +81,9 @@
 		user << "<span class='warning'>[src] is empty!</span>"
 		return
 	..()
+	if(!iscyborg(user))
+		reagents.maximum_volume = 0 //Makes them useless afterwards
+		container_type = 0
 	update_icon()
 	spawn(80)
 		if(iscyborg(user) && !reagents.total_volume)

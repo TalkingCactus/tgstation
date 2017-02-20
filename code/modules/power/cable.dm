@@ -93,21 +93,11 @@ By design, d1 is the smallest direction and d2 is the highest
 	cable_list -= src							//remove it from global cable list
 	return ..()									// then go ahead and delete the cable
 
-/obj/structure/cable/blob_act(obj/structure/blob/B)
-	if(invisibility != INVISIBILITY_MAXIMUM)
-		qdel(src)
-
 /obj/structure/cable/deconstruct(disassembled = TRUE)
 	if(!(flags & NODECONSTRUCT))
 		var/turf/T = loc
 		stored.forceMove(T)
 	qdel(src)
-
-/obj/structure/cable/fire_act(exposed_temperature, exposed_volume)
-	var/turf/T = src.loc
-	if(T && T.intact) //protected from fire when hidden behind a floor.
-		return
-	..()
 
 ///////////////////////////////////
 // General procedures
@@ -116,7 +106,7 @@ By design, d1 is the smallest direction and d2 is the highest
 //If underfloor, hide the cable
 /obj/structure/cable/hide(i)
 
-	if(level == 1 && istype(loc, /turf))
+	if(level == 1 && isturf(loc))
 		invisibility = i ? INVISIBILITY_MAXIMUM : 0
 	updateicon()
 
@@ -126,9 +116,6 @@ By design, d1 is the smallest direction and d2 is the highest
 	else
 		icon_state = "[d1]-[d2]"
 
-//Telekinesis has no effect on a cable
-/obj/structure/cable/attack_tk(mob/user)
-	return
 
 // Items usable on a cable :
 //   - Wirecutters : cut it duh !
@@ -200,9 +187,9 @@ By design, d1 is the smallest direction and d2 is the highest
 		if("white")
 			icon = 'icons/obj/power_cond/power_cond_white.dmi'
 
-/obj/structure/cable/proc/update_stored(var/length = 1, var/color = "red")
+/obj/structure/cable/proc/update_stored(length = 1, colorC = "red")
 	stored.amount = length
-	stored.item_color = color
+	stored.item_color = colorC
 	stored.update_icon()
 
 ////////////////////////////////////////////
@@ -432,7 +419,7 @@ By design, d1 is the smallest direction and d2 is the highest
 	powernet.remove_cable(src) //remove the cut cable from its powernet
 
 	spawn(0) //so we don't rebuild the network X times when singulo/explosion destroys a line of X cables
-		if(O && !qdeleted(O))
+		if(O && !QDELETED(O))
 			var/datum/powernet/newPN = new()// creates a new powernet...
 			propagate_network(O, newPN)//... and propagates it to the other side of the cable
 
@@ -466,7 +453,7 @@ var/global/list/datum/stack_recipe/cable_coil_recipes = list ( \
 	item_color = "red"
 	desc = "A coil of insulated power cable."
 	throwforce = 0
-	w_class = 2
+	w_class = WEIGHT_CLASS_SMALL
 	throw_speed = 3
 	throw_range = 5
 	materials = list(MAT_METAL=10, MAT_GLASS=5)
@@ -487,9 +474,9 @@ var/global/list/datum/stack_recipe/cable_coil_recipes = list ( \
 
 /obj/item/stack/cable_coil/suicide_act(mob/user)
 	if(locate(/obj/structure/chair/stool) in get_turf(user))
-		user.visible_message("<span class='suicide'>[user] is making a noose with the [src.name]! It looks like \he's trying to commit suicide.</span>")
+		user.visible_message("<span class='suicide'>[user] is making a noose with [src]! It looks like [user.p_theyre()] trying to commit suicide!</span>")
 	else
-		user.visible_message("<span class='suicide'>[user] is strangling \himself with the [src.name]! It looks like \he's trying to commit suicide.</span>")
+		user.visible_message("<span class='suicide'>[user] is strangling [user.p_them()]self with [src]! It looks like [user.p_theyre()] trying to commit suicide!</span>")
 	return(OXYLOSS)
 
 /obj/item/stack/cable_coil/New(loc, amount = MAXCOIL, var/param_color = null)
@@ -513,10 +500,11 @@ var/global/list/datum/stack_recipe/cable_coil_recipes = list ( \
 
 	var/obj/item/bodypart/affecting = H.get_bodypart(check_zone(user.zone_selected))
 	if(affecting && affecting.status == BODYPART_ROBOTIC)
-		user.visible_message("<span class='notice'>[user] starts to fix some of the wires in [H]'s [affecting.name].</span>", "<span class='notice'>You start fixing some of the wires in [H]'s [affecting.name].</span>")
-		if(!do_mob(user, H, 50))
-			return
-		if(item_heal_robotic(H, user, 0, 5))
+		if(user == H)
+			user.visible_message("<span class='notice'>[user] starts to fix some of the wires in [H]'s [affecting.name].</span>", "<span class='notice'>You start fixing some of the wires in [H]'s [affecting.name].</span>")
+			if(!do_mob(user, H, 50))
+				return
+		if(item_heal_robotic(H, user, 0, 15))
 			use(1)
 		return
 	else
@@ -748,6 +736,10 @@ var/global/list/datum/stack_recipe/cable_coil_recipes = list ( \
 	pixel_x = rand(-2,2)
 	pixel_y = rand(-2,2)
 	update_icon()
+
+/obj/item/stack/cable_coil/red
+	item_color = "red"
+	icon_state = "coil_red"
 
 /obj/item/stack/cable_coil/yellow
 	item_color = "yellow"

@@ -34,7 +34,7 @@
 				else
 					src << "<span class='warning'>There is already a blob here!</span>"
 					return 0
-			if(O.density)
+			else if(O.density)
 				src << "<span class='warning'>This spot is too dense to place a blob core on!</span>"
 				return 0
 		if(world.time <= manualplace_min_time && world.time <= autoplace_max_time)
@@ -69,7 +69,7 @@
 		var/list/nodes = list()
 		for(var/i in 1 to blob_nodes.len)
 			var/obj/structure/blob/node/B = blob_nodes[i]
-			nodes["Blob Node #[i] ([B.overmind ? "B.overmind.blob_reagent_datum.name":"No Chemical"]"] = B
+			nodes["Blob Node #[i] ([B.overmind ? "[B.overmind.blob_reagent_datum.name]":"No Chemical"])"] = B
 		var/node_name = input(src, "Choose a node to jump to.", "Node Jump") in nodes
 		var/obj/structure/blob/node/chosen_node = nodes[node_name]
 		if(chosen_node)
@@ -170,7 +170,6 @@
 	var/list/mob/dead/observer/candidates = pollCandidatesForMob("Do you want to play as a [blob_reagent_datum.name] blobbernaut?", ROLE_BLOB, null, ROLE_BLOB, 50, blobber) //players must answer rapidly
 	if(candidates.len) //if we got at least one candidate, they're a blobbernaut now.
 		var/client/C = pick(candidates)
-		blobber.notransform = 0
 		blobber.key = C.key
 		blobber << 'sound/effects/blobattack.ogg'
 		blobber << 'sound/effects/attackblob.ogg'
@@ -179,8 +178,8 @@
 		blobber << "You can communicate with other blobbernauts and overminds via <b>:b</b>"
 		blobber << "Your overmind's blob reagent is: <b><font color=\"[blob_reagent_datum.color]\">[blob_reagent_datum.name]</b></font>!"
 		blobber << "The <b><font color=\"[blob_reagent_datum.color]\">[blob_reagent_datum.name]</b></font> reagent [blob_reagent_datum.shortdesc ? "[blob_reagent_datum.shortdesc]" : "[blob_reagent_datum.description]"]"
-	else
-		blobber.notransform = 0 //otherwise, just let it move
+	if(blobber)
+		blobber.notransform = 0
 
 /mob/camera/blob/verb/relocate_core()
 	set category = "Blob"
