@@ -155,8 +155,8 @@
 				new_mob.job = "Cyborg"
 				var/mob/living/silicon/robot/Robot = new_mob
 				Robot.mmi.transfer_identity(M)	//Does not transfer key/client.
-				Robot.clear_inherent_laws()
-				Robot.clear_zeroth_law(0)
+				Robot.clear_inherent_laws(0)
+				Robot.clear_zeroth_law(0, 0)
 				Robot.connected_ai = null
 		if("slime")
 			new_mob = new /mob/living/simple_animal/slime/random(M.loc)
@@ -265,20 +265,19 @@
 
 	new_mob.languages_spoken |= HUMAN
 	new_mob.languages_understood |= HUMAN
-	new_mob.attack_log = M.attack_log
+	new_mob.logging = M.logging
 
 	// Some forms can still wear some items
 	for(var/obj/item/W in contents)
 		new_mob.equip_to_appropriate_slot(W)
 
-	M.attack_log += text("\[[time_stamp()]\] <font color='orange'>[M.real_name] ([M.ckey]) became [new_mob.real_name].</font>")
+	M.log_message("<font color='orange'>became [new_mob.real_name].</font>", INDIVIDUAL_ATTACK_LOG)
 
 	new_mob.a_intent = INTENT_HARM
 
 	M.wabbajack_act(new_mob)
 
-	new_mob << "<span class='warning'>Your form morphs into that of \
-		a [randomize].</span>"
+	new_mob << "<span class='warning'>Your form morphs into that of a [randomize].</span>"
 
 	qdel(M)
 	return new_mob
@@ -306,7 +305,7 @@
 					S.faction = list("\ref[owner]")
 				S.icon = P.icon
 				S.icon_state = P.icon_state
-				S.overlays = P.overlays
+				S.copy_overlays(P, TRUE)
 				S.color = P.color
 				S.atom_colours = P.atom_colours.Copy()
 				if(L.mind)

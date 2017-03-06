@@ -27,10 +27,10 @@ var/global/datum/getrev/revdata = new()
 		for(var/line in testmerge)
 			if(line)
 				log_world("Test merge active of PR #[line]")
+				feedback_add_details("testmerged_prs","[line]")
 		log_world("Based off master commit [parentcommit]")
 	else
 		log_world(parentcommit)
-	log_world("Current map - [MAP_NAME]") //can't think of anywhere better to put it
 
 /datum/getrev/proc/DownloadPRDetails()
 	if(!config.githubrepoid)
@@ -60,10 +60,10 @@ var/global/datum/getrev/revdata = new()
 	log_world("PR details successfully downloaded")
 	has_pr_details = TRUE
 
-/datum/getrev/proc/GetTestMergeInfo()
+/datum/getrev/proc/GetTestMergeInfo(header = TRUE)
 	if(!testmerge.len)
 		return ""
-	. = "The following pull requests are currently test merged:<br>"
+	. = header ? "The following pull requests are currently test merged:<br>" : ""
 	for(var/line in testmerge)
 		var/details = ""
 		if(has_pr_details)

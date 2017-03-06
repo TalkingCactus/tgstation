@@ -36,7 +36,6 @@
 	var/active = 0
 
 	var/memory
-	var/attack_log
 
 	var/assigned_role
 	var/special_role
@@ -135,7 +134,6 @@
 		if(isAI(current))
 			var/mob/living/silicon/ai/A = current
 			A.set_zeroth_law("")
-			A.show_laws()
 			A.verbs -= /mob/living/silicon/ai/proc/choose_modules
 			A.malf_picker.remove_verbs(A)
 			qdel(A.malf_picker)
@@ -249,7 +247,7 @@
 
 	if(window)
 		recipient << browse(output,"window=memory")
-	else
+	else if(objectives.len || memory)
 		recipient << "<i>[output]</i>"
 
 /datum/mind/proc/edit_memory()
