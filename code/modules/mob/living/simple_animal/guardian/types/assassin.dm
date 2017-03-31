@@ -16,7 +16,7 @@
 	var/obj/screen/alert/canstealthalert
 	var/obj/screen/alert/instealthalert
 
-/mob/living/simple_animal/hostile/guardian/assassin/New()
+/mob/living/simple_animal/hostile/guardian/assassin/Initialize()
 	..()
 	stealthcooldown = 0
 
@@ -33,7 +33,8 @@
 			stat(null, "Stealth Cooldown Remaining: [max(round((stealthcooldown - world.time)*0.1, 0.1), 0)] seconds")
 
 /mob/living/simple_animal/hostile/guardian/assassin/AttackingTarget()
-	if(..())
+	. = ..()
+	if(.)
 		if(toggle && (isliving(target) || istype(target, /obj/structure/window) || istype(target, /obj/structure/grille)))
 			ToggleMode(1)
 

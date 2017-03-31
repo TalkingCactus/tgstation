@@ -48,7 +48,7 @@
 	var/datum/action/innate/minedrone/toggle_mode/toggle_mode_action
 	var/datum/action/innate/minedrone/dump_ore/dump_ore_action
 
-/mob/living/simple_animal/hostile/mining_drone/New()
+/mob/living/simple_animal/hostile/mining_drone/Initialize()
 	..()
 	toggle_light_action = new()
 	toggle_light_action.Grant(src)
@@ -130,7 +130,7 @@
 	if(istype(target, /obj/item/weapon/ore) && mode ==  MINEDRONE_COLLECT)
 		CollectOre()
 		return
-	..()
+	return ..()
 
 /mob/living/simple_animal/hostile/mining_drone/proc/CollectOre()
 	var/obj/item/weapon/ore/O

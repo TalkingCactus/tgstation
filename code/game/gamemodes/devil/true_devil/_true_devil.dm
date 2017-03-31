@@ -27,7 +27,7 @@
 
 
 
-/mob/living/carbon/true_devil/New()
+/mob/living/carbon/true_devil/Initialize()
 	create_bodyparts() //initialize bodyparts
 
 	create_internal_organs()
@@ -153,7 +153,6 @@
 		S.mind.objectives += newobjective
 		to_chat(S, S.playstyle_string)
 		to_chat(S, "<B>Objective #[1]</B>: [newobjective.explanation_text]")
-		return
 	else
 		return ..()
 

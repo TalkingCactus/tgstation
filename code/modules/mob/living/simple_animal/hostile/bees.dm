@@ -56,7 +56,7 @@
 	return 1
 
 
-/mob/living/simple_animal/hostile/poison/bees/New()
+/mob/living/simple_animal/hostile/poison/bees/Initialize()
 	..()
 	generate_bee_visuals()
 
@@ -144,12 +144,12 @@
 		target = null
 		wanted_objects -= typecacheof(/obj/structure/beebox) //so we don't attack beeboxes when not going home
 	else
-		if(beegent && isliving(target))
+		. = ..()
+		if(. && beegent && isliving(target))
 			var/mob/living/L = target
 			if(L.reagents)
 				beegent.reaction_mob(L, INJECT)
 				L.reagents.add_reagent(beegent.id, rand(1,5))
-		target.attack_animal(src)
 
 
 /mob/living/simple_animal/hostile/poison/bees/proc/assign_reagent(datum/reagent/R)
@@ -209,7 +209,7 @@
 			BB.bees |= src
 			beehome = BB
 
-/mob/living/simple_animal/hostile/poison/bees/toxin/New()
+/mob/living/simple_animal/hostile/poison/bees/toxin/Initialize()
 	. = ..()
 	var/datum/reagent/R = pick(typesof(/datum/reagent/toxin))
 	assign_reagent(chemical_reagents_list[initial(R.id)])
@@ -228,11 +228,11 @@
 
 //leave pollination for the peasent bees
 /mob/living/simple_animal/hostile/poison/bees/queen/AttackingTarget()
-	if(beegent && isliving(target))
+	. = ..()
+	if(. && beegent && isliving(target))
 		var/mob/living/L = target
 		beegent.reaction_mob(L, TOUCH)
 		L.reagents.add_reagent(beegent.id, rand(1,5))
-	target.attack_animal(src)
 
 
 //PEASENT BEES
@@ -283,12 +283,12 @@
 	..()
 
 
-/obj/item/queen_bee/bought/New()
+/obj/item/queen_bee/bought/Initialize()
 	..()
 	queen = new(src)
 
 
 /obj/item/queen_bee/Destroy()
-	qdel(queen)
+	QDEL_NULL(queen)
 	return ..()
 

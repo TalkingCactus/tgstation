@@ -102,7 +102,7 @@
 	var/is_zombie = 0
 	gold_core_spawnable = 1
 
-/mob/living/simple_animal/hostile/blob/blobspore/New(loc, var/obj/structure/blob/factory/linked_node)
+/mob/living/simple_animal/hostile/blob/blobspore/Initialize(mapload, var/obj/structure/blob/factory/linked_node)
 	if(istype(linked_node))
 		factory = linked_node
 		factory.spores += src
@@ -222,7 +222,7 @@
 	see_in_dark = 8
 	var/independent = FALSE
 
-/mob/living/simple_animal/hostile/blob/blobbernaut/New()
+/mob/living/simple_animal/hostile/blob/blobbernaut/Initialize()
 	..()
 	if(!independent) //no pulling people deep into the blob
 		verbs -= /mob/living/verb/pulled
@@ -255,13 +255,11 @@
 		hud_used.healths.maptext = "<div align='center' valign='middle' style='position:relative; top:0px; left:6px'><font color='#e36600'>[round((health / maxHealth) * 100, 0.5)]%</font></div>"
 
 /mob/living/simple_animal/hostile/blob/blobbernaut/AttackingTarget()
-	if(isliving(target))
-		if(overmind)
-			var/mob/living/L = target
-			var/mob_protection = L.get_permeability_protection()
-			overmind.blob_reagent_datum.reaction_mob(L, VAPOR, 20, 0, mob_protection, overmind)//this will do between 10 and 20 damage(reduced by mob protection), depending on chemical, plus 4 from base brute damage.
-	if(target)
-		..()
+	. = ..()
+	if(. && isliving(target) && overmind)
+		var/mob/living/L = target
+		var/mob_protection = L.get_permeability_protection()
+		overmind.blob_reagent_datum.reaction_mob(L, VAPOR, 20, 0, mob_protection, overmind)//this will do between 10 and 20 damage(reduced by mob protection), depending on chemical, plus 4 from base brute damage.
 
 /mob/living/simple_animal/hostile/blob/blobbernaut/update_icons()
 	..()

@@ -32,7 +32,7 @@
 	var/playstyle_string = "<b>You are a generic construct! Your job is to not exist, and you should probably adminhelp this.</b>"
 
 
-/mob/living/simple_animal/hostile/construct/New()
+/mob/living/simple_animal/hostile/construct/Initialize()
 	..()
 	for(var/spell in construct_spells)
 		AddSpell(new spell(null))
@@ -74,7 +74,7 @@
 			else
 				to_chat(M, "<span class='cult'>You cannot repair your own dents, as you have none!</span>")
 	else if(src != M)
-		..()
+		return ..()
 
 /mob/living/simple_animal/hostile/construct/Process_Spacemove(movement_dir = 0)
 	return 1

@@ -5,7 +5,7 @@
 	icon_state = "camera_target"
 	var/allowed_area = null
 
-/mob/camera/aiEye/remote/xenobio/New(loc)
+/mob/camera/aiEye/remote/xenobio/Initialize()
 	var/area/A = get_area(loc)
 	allowed_area = A.name
 	..()
@@ -104,7 +104,7 @@
 			C.client.images -= chunk.obscured
 	C.remote_control = null
 	C.unset_machine()
-	src.Remove(C)
+	Remove(C)
 
 
 /datum/action/innate/slime_place

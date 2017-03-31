@@ -48,7 +48,7 @@
 	if(!stat)//Mushrooms slowly regenerate if conscious, for people who want to save them from being eaten
 		adjustBruteLoss(-2)
 
-/mob/living/simple_animal/hostile/mushroom/New()//Makes every shroom a little unique
+/mob/living/simple_animal/hostile/mushroom/Initialize()//Makes every shroom a little unique
 	melee_damage_lower += rand(3, 5)
 	melee_damage_upper += rand(10,20)
 	maxHealth += rand(40,60)
@@ -77,7 +77,7 @@
 		if(faint_ticker < 2)
 			M.visible_message("[M] chews a bit on [src].")
 			faint_ticker++
-			return
+			return TRUE
 		M.visible_message("<span class='warning'>[M] devours [src]!</span>")
 		var/level_gain = (powerlevel - M.powerlevel)
 		if(level_gain >= -1 && !bruised && !M.ckey)//Player shrooms can't level up to become robust gods.
@@ -86,7 +86,8 @@
 			M.LevelUp(level_gain)
 		M.adjustBruteLoss(-M.maxHealth)
 		qdel(src)
-	..()
+		return TRUE
+	return ..()
 
 /mob/living/simple_animal/hostile/mushroom/revive(full_heal = 0, admin_revive = 0)
 	if(..())

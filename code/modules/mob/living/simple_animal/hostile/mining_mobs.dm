@@ -141,7 +141,7 @@
 	var/chase_time = 100
 	var/will_burrow = TRUE
 
-/mob/living/simple_animal/hostile/asteroid/goldgrub/New()
+/mob/living/simple_animal/hostile/asteroid/goldgrub/Initialize()
 	..()
 	var/i = rand(1,3)
 	while(i)
@@ -165,7 +165,7 @@
 	if(istype(target, /obj/item/weapon/ore))
 		EatOre(target)
 		return
-	..()
+	return ..()
 
 /mob/living/simple_animal/hostile/asteroid/goldgrub/proc/EatOre(atom/targeted_ore)
 	for(var/obj/item/weapon/ore/O in targeted_ore.loc)
@@ -233,6 +233,7 @@
 
 /mob/living/simple_animal/hostile/asteroid/hivelord/AttackingTarget()
 	OpenFire()
+	return TRUE
 
 /mob/living/simple_animal/hostile/asteroid/hivelord/death(gibbed)
 	mouse_opacity = 1
@@ -249,7 +250,7 @@
 	var/inert = 0
 	var/preserved = 0
 
-/obj/item/organ/hivelord_core/New()
+/obj/item/organ/hivelord_core/Initialize()
 	..()
 	addtimer(CALLBACK(src, .proc/inert_check), 2400)
 
@@ -337,7 +338,7 @@
 	pass_flags = PASSTABLE
 	del_on_death = 1
 
-/mob/living/simple_animal/hostile/asteroid/hivelordbrood/New()
+/mob/living/simple_animal/hostile/asteroid/hivelordbrood/Initialize()
 	..()
 	addtimer(CALLBACK(src, .proc/death), 100)
 
@@ -355,13 +356,13 @@
 		reagents.reaction(get_turf(src))
 	..()
 
-/mob/living/simple_animal/hostile/asteroid/hivelordbrood/blood/New()
+/mob/living/simple_animal/hostile/asteroid/hivelordbrood/blood/Initialize()
 	create_reagents(30)
 	..()
 
 /mob/living/simple_animal/hostile/asteroid/hivelordbrood/blood/AttackingTarget()
-	..()
-	if(iscarbon(target))
+	. = ..()
+	if(. && iscarbon(target))
 		transfer_reagents(target, 1)
 
 
@@ -896,7 +897,7 @@
 	wanted_objects = list(/obj/effect/decal/cleanable/xenoblood/xgibs, /obj/effect/decal/cleanable/blood/gibs/)
 	var/obj/item/udder/gutlunch/udder = null
 
-/mob/living/simple_animal/hostile/asteroid/gutlunch/New()
+/mob/living/simple_animal/hostile/asteroid/gutlunch/Initialize()
 	udder = new()
 	..()
 
@@ -924,7 +925,7 @@
 		regenerate_icons()
 		visible_message("<span class='notice'>[src] slurps up [target].</span>")
 		qdel(target)
-	..()
+	return ..()
 
 
 /obj/item/udder/gutlunch
@@ -946,7 +947,7 @@
 	name = "gubbuck"
 	gender = MALE
 
-/mob/living/simple_animal/hostile/asteroid/gutlunch/gubbuck/New()
+/mob/living/simple_animal/hostile/asteroid/gutlunch/gubbuck/Initialize()
 	..()
 	add_atom_colour(pick("#E39FBB", "#D97D64", "#CF8C4A"), FIXED_COLOUR_PRIORITY)
 	resize = 0.85
@@ -993,7 +994,7 @@
 	del_on_death = 1
 	var/gps = null
 
-/mob/living/simple_animal/hostile/spawner/lavaland/New()
+/mob/living/simple_animal/hostile/spawner/lavaland/Initialize()
 	..()
 	for(var/F in RANGE_TURFS(1, src))
 		if(ismineralturf(F))
