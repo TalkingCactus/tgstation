@@ -11,9 +11,9 @@ var/list/lighting_update_overlays  = list() // List of lighting overlays queued 
 
 /datum/controller/subsystem/lighting
 	name = "Lighting"
-	wait = 1
-	init_order = 1
-	priority = 25
+	wait = 2
+	init_order = -20
+	priority = 35
 	flags = SS_TICKER
 
 	var/initialized = FALSE
