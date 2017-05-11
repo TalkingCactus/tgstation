@@ -2509,7 +2509,7 @@
 "afq" = (
 /obj/machinery/computer/shuttle/pod{
 	pixel_y = -32;
-	possible_destinations = "pod_asteroid3";
+	possible_destinations = "pod_lavaland3";
 	shuttleId = "pod3"
 	},
 /obj/structure/chair{
@@ -7825,8 +7825,8 @@
 "aqG" = (
 /obj/docking_port/stationary/random{
 	dir = 4;
-	id = "pod_asteroid3";
-	name = "asteroid"
+	id = "pod_lavaland3";
+	name = "lavaland"
 	},
 /turf/open/space,
 /area/space)
@@ -13925,7 +13925,7 @@
 	dir = 4;
 	icon_state = "burst_r"
 	},
-/turf/open/floor/plasteel/black,
+/turf/open/floor/plating/airless,
 /area/shuttle/arrival)
 "aEy" = (
 /obj/structure/shuttle/engine/heater{
@@ -13935,7 +13935,7 @@
 /obj/structure/window/reinforced{
 	dir = 8
 	},
-/turf/open/floor/plasteel/black,
+/turf/open/floor/plating/airless,
 /area/shuttle/arrival)
 "aEz" = (
 /obj/machinery/power/apc{
@@ -14460,7 +14460,7 @@
 	dir = 4;
 	icon_state = "propulsion"
 	},
-/turf/open/floor/plasteel/black,
+/turf/open/floor/plating/airless,
 /area/shuttle/arrival)
 "aFG" = (
 /turf/open/floor/plasteel/arrival{
@@ -16630,7 +16630,7 @@
 	dir = 4;
 	icon_state = "burst_l"
 	},
-/turf/open/floor/plasteel/black,
+/turf/open/floor/plating/airless,
 /area/shuttle/arrival)
 "aKj" = (
 /obj/machinery/door/firedoor,
@@ -17429,7 +17429,6 @@
 /area/hallway/primary/central)
 "aMf" = (
 /turf/open/floor/plasteel{
-	desc = "";
 	icon_state = "L13";
 	name = "floor"
 	},
@@ -17935,7 +17934,6 @@
 /area/hallway/primary/central)
 "aNB" = (
 /turf/open/floor/plasteel{
-	desc = "";
 	icon_state = "L14"
 	},
 /area/hallway/primary/central)
@@ -19114,6 +19112,12 @@
 /turf/open/floor/wood,
 /area/library)
 "aQr" = (
+/obj/structure/closet/crate,
+/obj/item/clothing/shoes/workboots/mining,
+/obj/item/clothing/under/rank/curator/treasure_hunter,
+/obj/item/clothing/suit/curator,
+/obj/item/clothing/head/curator,
+/obj/item/weapon/storage/backpack/satchel/explorer,
 /obj/machinery/light/small,
 /turf/open/floor/engine/cult,
 /area/library)
@@ -19609,7 +19613,7 @@
 /turf/open/floor/wood,
 /area/library)
 "aRO" = (
-/obj/structure/bookcase/random/nonfiction,
+/obj/structure/displaycase/trophy,
 /turf/open/floor/wood,
 /area/library)
 "aRP" = (
@@ -27256,7 +27260,7 @@
 /turf/open/floor/plasteel,
 /area/assembly/chargebay)
 "bjQ" = (
-/obj/machinery/smartfridge/chemistry,
+/obj/machinery/smartfridge/chemistry/preloaded,
 /turf/open/floor/plating,
 /area/medical/chemistry)
 "bjR" = (
@@ -39965,9 +39969,7 @@
 	icon_state = "0-2";
 	d2 = 2
 	},
-/obj/machinery/shieldwallgen{
-	req_access_txt = "55"
-	},
+/obj/machinery/shieldwallgen/xenobiologyaccess,
 /turf/open/floor/plating,
 /area/toxins/xenobiology)
 "bJI" = (
@@ -41264,7 +41266,7 @@
 /turf/open/floor/plasteel/white,
 /area/toxins/xenobiology)
 "bMo" = (
-/obj/machinery/smartfridge/extract,
+/obj/machinery/smartfridge/extract/preloaded,
 /turf/open/floor/plasteel/white,
 /area/toxins/xenobiology)
 "bMp" = (
@@ -45233,7 +45235,7 @@
 /turf/open/floor/plating,
 /area/maintenance/asmaint)
 "bVa" = (
-/obj/machinery/smartfridge/chemistry/virology,
+/obj/machinery/smartfridge/chemistry/virology/preloaded,
 /turf/open/floor/plasteel/whitegreen/side{
 	dir = 8
 	},
@@ -53947,23 +53949,23 @@
 /area/maintenance/asmaint2)
 "cnI" = (
 /obj/structure/table,
-/obj/item/weapon/c4{
+/obj/item/weapon/grenade/plastic/c4{
 	pixel_x = 2;
 	pixel_y = -5
 	},
-/obj/item/weapon/c4{
+/obj/item/weapon/grenade/plastic/c4{
 	pixel_x = -3;
 	pixel_y = 3
 	},
-/obj/item/weapon/c4{
+/obj/item/weapon/grenade/plastic/c4{
 	pixel_x = 2;
 	pixel_y = -3
 	},
-/obj/item/weapon/c4{
+/obj/item/weapon/grenade/plastic/c4{
 	pixel_x = -2;
 	pixel_y = -1
 	},
-/obj/item/weapon/c4{
+/obj/item/weapon/grenade/plastic/c4{
 	pixel_x = 3;
 	pixel_y = 3
 	},
@@ -54756,8 +54758,8 @@
 "cpe" = (
 /obj/docking_port/stationary/random{
 	dir = 8;
-	id = "pod_asteroid2";
-	name = "asteroid"
+	id = "pod_lavaland2";
+	name = "lavaland"
 	},
 /turf/open/space,
 /area/space)
@@ -55057,7 +55059,7 @@
 /obj/machinery/computer/shuttle/pod{
 	pixel_x = 0;
 	pixel_y = -32;
-	possible_destinations = "pod_asteroid2";
+	possible_destinations = "pod_lavaland2";
 	shuttleId = "pod2"
 	},
 /obj/structure/chair{
@@ -58600,8 +58602,8 @@
 "cwV" = (
 /obj/docking_port/stationary/random{
 	dir = 8;
-	id = "pod_asteroid1";
-	name = "asteroid"
+	id = "pod_lavaland1";
+	name = "lavaland"
 	},
 /turf/open/space,
 /area/space)
@@ -58714,7 +58716,7 @@
 /obj/machinery/computer/shuttle/pod{
 	pixel_x = 0;
 	pixel_y = -32;
-	possible_destinations = "pod_asteroid1";
+	possible_destinations = "pod_lavaland1";
 	shuttleId = "pod1"
 	},
 /obj/structure/chair{
@@ -58782,7 +58784,7 @@
 	dir = 8;
 	icon_state = "propulsion_l"
 	},
-/turf/open/floor/plating,
+/turf/open/floor/plating/airless,
 /area/shuttle/transport)
 "cxu" = (
 /turf/closed/wall/mineral/titanium,
@@ -58818,7 +58820,7 @@
 	dir = 8
 	},
 /obj/structure/window/reinforced,
-/turf/open/floor/plating,
+/turf/open/floor/plating/airless,
 /area/shuttle/transport)
 "cxz" = (
 /obj/machinery/computer/shuttle/ferry/request,
@@ -58846,7 +58848,7 @@
 	dir = 4;
 	pixel_x = 0
 	},
-/turf/open/floor/plating,
+/turf/open/floor/plating/airless,
 /area/shuttle/transport)
 "cxE" = (
 /obj/machinery/door/airlock/titanium,
@@ -59666,7 +59668,7 @@
 "czL" = (
 /obj/machinery/computer/shuttle/pod{
 	pixel_y = -32;
-	possible_destinations = "pod_asteroid4";
+	possible_destinations = "pod_lavaland4";
 	shuttleId = "pod4"
 	},
 /obj/structure/chair{
@@ -59697,8 +59699,8 @@
 "czN" = (
 /obj/docking_port/stationary/random{
 	dir = 4;
-	id = "pod_asteroid4";
-	name = "asteroid"
+	id = "pod_lavaland4";
+	name = "lavaland"
 	},
 /turf/open/space,
 /area/space)
@@ -60969,7 +60971,7 @@
 	dir = 1;
 	pixel_y = 1
 	},
-/turf/open/floor/plating,
+/turf/open/floor/plating/airless,
 /area/shuttle/transport)
 "cCz" = (
 /obj/machinery/door/airlock/external,
@@ -63395,7 +63397,7 @@
 	name = "arrivals";
 	width = 7
 	},
-/turf/open/floor/plasteel/black,
+/turf/open/floor/plating/airless,
 /area/shuttle/arrival)
 "cIh" = (
 /obj/machinery/door/airlock/external{
@@ -93201,11 +93203,11 @@ cpy
 cDv
 cDD
 cqU
-cMF
+cMD
 cEu
 cMI
-cMJ
-cML
+cMI
+cMD
 cFL
 cGf
 cGw
@@ -93457,12 +93459,12 @@ chV
 cDq
 cqf
 cqD
-cME
+cMD
 crs
 cEv
 cEv
 cFe
-cMM
+cMD
 cFM
 czE
 cGx
@@ -93975,7 +93977,7 @@ cqZ
 crt
 cMH
 cAm
-cMK
+cMH
 cMN
 cFO
 csC
@@ -94490,7 +94492,7 @@ crv
 cEy
 cEy
 cFh
-cMO
+cMD
 cFQ
 czE
 cGx
@@ -94743,11 +94745,11 @@ cDr
 cDw
 cDE
 cEa
-cMG
+cMD
 cEz
 cEz
 cEz
-cMP
+cMD
 cFR
 cGf
 cGz
@@ -108809,7 +108811,7 @@ aIt
 aPd
 aIt
 aRO
-aIt
+aRO
 aUC
 aVP
 aXu
@@ -109066,7 +109068,7 @@ aNV
 aPd
 aIt
 aRO
-aIt
+aRO
 aIt
 aVQ
 aXu

@@ -38,7 +38,7 @@
 			return
 
 		// this must come before the screen objects only block, dunno why it wasn't before
-		if(over_object == M && (src.ClickAccessible(M, depth=STORAGE_VIEW_DEPTH) || Adjacent(M)))
+		if(over_object == M && M.CanReach(src,view_only = TRUE))
 			orient2hud(M)
 			if(M.s_active)
 				M.s_active.close(M)
@@ -404,6 +404,9 @@
 	. = 1 //no afterattack
 	if(iscyborg(user))
 		return	//Robots can't interact with storage items.
+
+	if(contents.len >= storage_slots) //don't use items on the backpack if they don't fit
+		return 1
 
 	if(!can_be_inserted(W, 0 , user))
 		return 0

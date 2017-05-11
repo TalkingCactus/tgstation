@@ -3,15 +3,14 @@
 	var/deletes_extract = TRUE
 
 /datum/chemical_reaction/slime/on_reaction(datum/reagents/holder)
-	feedback_add_details("slime_cores_used","[type]")
+	SSblackbox.add_details("slime_cores_used","[type]")
 	if(deletes_extract)
 		delete_extract(holder)
 
 /datum/chemical_reaction/slime/proc/delete_extract(datum/reagents/holder)
 	var/obj/item/slime_extract/M = holder.my_atom
-	if(M.Uses <= 0)
-		if (!results.len) //if the slime doesn't output chemicals
-			qdel(M)
+	if(M.Uses <= 0 && !results.len) //if the slime doesn't output chemicals
+		qdel(M)
 
 //Grey
 /datum/chemical_reaction/slime/slimespawn
@@ -22,8 +21,7 @@
 	required_other = 1
 
 /datum/chemical_reaction/slime/slimespawn/on_reaction(datum/reagents/holder)
-	var/mob/living/simple_animal/slime/S
-	S = new(get_turf(holder.my_atom), "grey")
+	var/mob/living/simple_animal/slime/S = new(get_turf(holder.my_atom), "grey")
 	S.visible_message("<span class='danger'>Infused with plasma, the core begins to quiver and grow, and a new baby slime emerges from it!</span>")
 	..()
 
@@ -104,7 +102,7 @@
 
 /datum/chemical_reaction/slime/slimemobspawn/on_reaction(datum/reagents/holder)
 	var/turf/T = get_turf(holder.my_atom)
-	summon_mobs(T)
+	summon_mobs(holder, T)
 	var/obj/item/slime_extract/M = holder.my_atom
 	deltimer(M.qdel_timer)
 	..()
@@ -223,6 +221,7 @@
 	required_reagents = list("plasma" = 1)
 	required_container = /obj/item/slime_extract/darkblue
 	required_other = 1
+	deletes_extract = FALSE
 
 /datum/chemical_reaction/slime/slimefreeze/on_reaction(datum/reagents/holder)
 	var/turf/T = get_turf(holder.my_atom)
@@ -360,7 +359,6 @@
 	..()
 
 //Red
-
 /datum/chemical_reaction/slime/slimemutator
 	name = "Slime Mutator"
 	id = "m_slimemutator"
@@ -439,13 +437,14 @@
 
 /datum/chemical_reaction/slime/slimeexplosion/on_reaction(datum/reagents/holder)
 	var/turf/T = get_turf(holder.my_atom)
+	var/area/A = get_area(T)
 	var/lastkey = holder.my_atom.fingerprintslast
 	var/touch_msg = "N/A"
 	if(lastkey)
 		var/mob/toucher = get_mob_by_key(lastkey)
-		touch_msg = "[key_name_admin(lastkey)]<A HREF='?_src_=holder;adminmoreinfo=\ref[toucher]'>?</A>(<A HREF='?_src_=holder;adminplayerobservefollow=\ref[toucher]'>FLW</A>)."
-	message_admins("Slime Explosion reaction started at <a href='?_src_=holder;adminplayerobservecoodjump=1;X=[T.x];Y=[T.y];Z=[T.z]'>[T.loc.name] (JMP)</a>. Last Fingerprint: [touch_msg]")
-	log_game("Slime Explosion reaction started at [T.loc.name] ([T.x],[T.y],[T.z]). Last Fingerprint: [lastkey ? lastkey : "N/A"].")
+		touch_msg = "[ADMIN_LOOKUPFLW(toucher)]."
+	message_admins("Slime Explosion reaction started at [A] [ADMIN_COORDJMP(T)]. Last Fingerprint: [touch_msg]")
+	log_game("Slime Explosion reaction started at [A] [COORD(T)]. Last Fingerprint: [lastkey ? lastkey : "N/A"].")
 	T.visible_message("<span class='danger'>The slime extract begins to vibrate violently !</span>")
 	addtimer(CALLBACK(src, .proc/boom, holder), 50)
 	var/obj/item/slime_extract/M = holder.my_atom
@@ -475,30 +474,19 @@
 	required_other = 1
 
 /datum/chemical_reaction/slime/slimepotion2/on_reaction(datum/reagents/holder)
-	new /obj/item/slimepotion/sentience
+	new /obj/item/slimepotion/sentience(get_turf(holder.my_atom))
 	..()
 
 //Adamantine
-/datum/chemical_reaction/slime/slimegolem
-	name = "Slime Golem"
-	id = "m_golem"
+/datum/chemical_reaction/slime/adamantine
+	name = "Adamantine"
+	id = "adamantine"
 	required_reagents = list("plasma" = 1)
 	required_container = /obj/item/slime_extract/adamantine
 	required_other = 1
 
-/datum/chemical_reaction/slime/slimegolem/on_reaction(datum/reagents/holder)
-	new /obj/effect/golemrune(get_turf(holder.my_atom))
-	..()
-
-/datum/chemical_reaction/slime/slimegolem2
-	name = "Slime Golem 2"
-	id = "m_golem2"
-	required_reagents = list("iron" = 1)
-	required_container = /obj/item/slime_extract/adamantine
-	required_other = 1
-
-/datum/chemical_reaction/slime/slimegolem2/on_reaction(datum/reagents/holder)
-	new /obj/item/golem_shell/artificial(get_turf(holder.my_atom))
+/datum/chemical_reaction/slime/adamantine/on_reaction(datum/reagents/holder)
+	new /obj/item/stack/sheet/mineral/adamantine(get_turf(holder.my_atom))
 	..()
 
 //Bluespace
