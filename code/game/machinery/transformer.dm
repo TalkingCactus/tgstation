@@ -6,8 +6,8 @@
 	icon = 'icons/obj/recycling.dmi'
 	icon_state = "separator-AO1"
 	layer = ABOVE_ALL_MOB_LAYER // Overhead
-	anchored = 1
-	density = 0
+	anchored = TRUE
+	density = FALSE
 	var/transform_dead = 0
 	var/transform_standing = 0
 	var/cooldown_duration = 600 // 1 minute
@@ -16,13 +16,13 @@
 	var/robot_cell_charge = 5000
 	var/obj/effect/countdown/transformer/countdown
 	var/mob/living/silicon/ai/masterAI
-	
+
 /obj/machinery/transformer/Initialize()
 	// On us
 	. = ..()
 	new /obj/machinery/conveyor/auto(locate(x - 1, y, z), WEST)
 	new /obj/machinery/conveyor/auto(loc, WEST)
-	new /obj/machinery/conveyor/auto(locate(x + 1, y, z), WEST)	
+	new /obj/machinery/conveyor/auto(locate(x + 1, y, z), WEST)
 	countdown = new(src)
 	countdown.start()
 
@@ -33,9 +33,7 @@
 		to_chat(user, "It will be ready in [max(0, seconds_remaining)] seconds.")
 
 /obj/machinery/transformer/Destroy()
-	if(countdown)
-		qdel(countdown)
-	countdown = null
+	QDEL_NULL(countdown)
 	. = ..()
 
 /obj/machinery/transformer/power_change()
@@ -49,7 +47,7 @@
 	else
 		icon_state = initial(icon_state)
 
-/obj/machinery/transformer/Bumped(atom/movable/AM)
+/obj/machinery/transformer/CollidedWith(atom/movable/AM)
 	if(cooldown == 1)
 		return
 
@@ -59,10 +57,10 @@
 		var/move_dir = get_dir(loc, AM.loc)
 		var/mob/living/carbon/human/H = AM
 		if((transform_standing || H.lying) && move_dir == EAST)// || move_dir == WEST)
-			AM.loc = src.loc
+			AM.forceMove(drop_location())
 			do_transform(AM)
 
-/obj/machinery/transformer/CanPass(atom/movable/mover, turf/target, height=0)
+/obj/machinery/transformer/CanPass(atom/movable/mover, turf/target)
 	// Allows items to go through,
 	// to stop them from blocking the conveyor belt.
 	if(!ishuman(mover))
@@ -100,9 +98,7 @@
 
 	use_power(5000) // Use a lot of power.
 	var/mob/living/silicon/robot/R = H.Robotize()
-
-	R.cell.maxcharge = robot_cell_charge
-	R.cell.charge = robot_cell_charge
+	R.cell = new /obj/item/stock_parts/cell/upgraded/plus(R, robot_cell_charge)
 
  	// So he can't jump out the gate right away.
 	R.SetLockdown()

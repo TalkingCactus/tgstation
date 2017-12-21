@@ -7,6 +7,7 @@
 	item_color = "plasma" //On accessories, this controls the worn sprite. That's a bit weird.
 	slot_flags = 0
 	w_class = WEIGHT_CLASS_SMALL
+	var/above_suit = FALSE
 	var/minimize_when_attached = TRUE // TRUE if shown as a small icon in corner, FALSE if overlayed
 
 /obj/item/clothing/accessory/proc/attach(obj/item/clothing/under/U, user)
@@ -14,11 +15,11 @@
 		if(U.pockets) // storage items conflict
 			return FALSE
 
-		pockets.loc = U
+		pockets.forceMove(U)
 		U.pockets = pockets
 
 	U.attached_accessory = src
-	loc = U
+	forceMove(U)
 	layer = FLOAT_LAYER
 	plane = FLOAT_PLANE
 	if(minimize_when_attached)
@@ -38,7 +39,7 @@
 
 /obj/item/clothing/accessory/proc/detach(obj/item/clothing/under/U, user)
 	if(pockets && pockets == U.pockets)
-		pockets.loc = src
+		pockets.forceMove(src)
 		U.pockets = null
 
 	for(var/armor_type in armor)
@@ -55,6 +56,7 @@
 	plane = initial(plane)
 	U.cut_overlays()
 	U.attached_accessory = null
+	U.accessory_overlay = null
 
 /obj/item/clothing/accessory/proc/on_uniform_equip(obj/item/clothing/under/U, user)
 	return
@@ -62,9 +64,17 @@
 /obj/item/clothing/accessory/proc/on_uniform_dropped(obj/item/clothing/under/U, user)
 	return
 
+/obj/item/clothing/accessory/AltClick(mob/user)
+	if(user.canUseTopic(src, be_close=TRUE))
+		if(initial(above_suit))
+			above_suit = !above_suit
+			to_chat(user, "[src] will be worn [above_suit ? "above" : "below"] your suit.")
+
 /obj/item/clothing/accessory/examine(mob/user)
 	..()
 	to_chat(user, "<span class='notice'>\The [src] can be attached to a uniform. Alt-click to remove it once attached.</span>")
+	if(initial(above_suit))
+		to_chat(user, "<span class='notice'>\The [src] can be worn above or below your suit. Alt-click to toggle.</span>")
 
 /obj/item/clothing/accessory/waistcoat
 	name = "waistcoat"
@@ -72,6 +82,14 @@
 	icon_state = "waistcoat"
 	item_state = "waistcoat"
 	item_color = "waistcoat"
+	minimize_when_attached = FALSE
+
+/obj/item/clothing/accessory/maidapron
+	name = "maid apron"
+	desc = "The best part of a maid costume."
+	icon_state = "maidapron"
+	item_state = "maidapron"
+	item_color = "maidapron"
 	minimize_when_attached = FALSE
 
 //////////
@@ -116,14 +134,16 @@
 						user.visible_message("[user] pins \the [src] on [M]'s chest.", \
 											 "<span class='notice'>You pin \the [src] on [M]'s chest.</span>")
 						if(input)
-							SSblackbox.add_details("commendation", json_encode(list("commender" = "[user.real_name]", "commendee" = "[M.real_name]", "medal" = "[src]", "reason" = input)))
-							GLOB.commendations += "[user.real_name] awarded <b>[M.real_name]</b> the <font color='blue'>[name]</font>! \n- [input]"
+							SSblackbox.record_feedback("associative", "commendation", 1, list("commender" = "[user.real_name]", "commendee" = "[M.real_name]", "medal" = "[src]", "reason" = input))
+							GLOB.commendations += "[user.real_name] awarded <b>[M.real_name]</b> the <span class='medaltext'>[name]</span>! \n- [input]"
 							commended = TRUE
 							log_game("<b>[key_name(M)]</b> was given the following commendation by <b>[key_name(user)]</b>: [input]")
 							message_admins("<b>[key_name(M)]</b> was given the following commendation by <b>[key_name(user)]</b>: [input]")
 
-		else to_chat(user, "<span class='warning'>Medals can only be pinned on jumpsuits!</span>")
-	else ..()
+		else
+			to_chat(user, "<span class='warning'>Medals can only be pinned on jumpsuits!</span>")
+	else
+		..()
 
 /obj/item/clothing/accessory/medal/conduct
 	name = "distinguished conduct medal"
@@ -133,6 +153,16 @@
 	name = "bronze heart medal"
 	desc = "A bronze heart-shaped medal awarded for sacrifice. It is often awarded posthumously or for severe injury in the line of duty."
 	icon_state = "bronze_heart"
+
+/obj/item/clothing/accessory/medal/ribbon
+	name = "ribbon"
+	desc = "A ribbon"
+	icon_state = "cargo"
+	item_color = "cargo"
+
+/obj/item/clothing/accessory/medal/ribbon/cargo
+	name = "\"cargo tech of the shift\" award"
+	desc = "An award bestowed only upon those cargotechs who have exhibited devotion to their duty in keeping with the highest traditions of Cargonia."
 
 /obj/item/clothing/accessory/medal/silver
 	name = "silver medal"
@@ -165,7 +195,7 @@
 
 /obj/item/clothing/accessory/medal/gold/heroism
 	name = "medal of exceptional heroism"
-	desc = "An extremely rare golden medal awarded only by Centcom. To receive such a medal is the highest honor and as such, very few exist. This medal is almost never awarded to anybody but commanders."
+	desc = "An extremely rare golden medal awarded only by CentCom. To receive such a medal is the highest honor and as such, very few exist. This medal is almost never awarded to anybody but commanders."
 
 /obj/item/clothing/accessory/medal/plasma
 	name = "plasma medal"
@@ -259,6 +289,23 @@
 		L.bubble_icon = initial(L.bubble_icon)
 
 ////////////////
+//HA HA! NERD!//
+////////////////
+/obj/item/clothing/accessory/pocketprotector
+	name = "pocket protector"
+	desc = "Can protect your clothing from ink stains, but you'll look like a nerd if you're using one."
+	icon_state = "pocketprotector"
+	item_color = "pocketprotector"
+	pockets = /obj/item/storage/internal/pocket/pocketprotector
+
+/obj/item/clothing/accessory/pocketprotector/full
+	pockets = /obj/item/storage/internal/pocket/pocketprotector/full
+
+/obj/item/clothing/accessory/pocketprotector/cosmetology
+	pockets = /obj/item/storage/internal/pocket/pocketprotector/cosmetology
+
+
+////////////////
 //OONGA BOONGA//
 ////////////////
 
@@ -267,4 +314,13 @@
 	desc = "A hunter's talisman, some say the old gods smile on those who wear it."
 	icon_state = "talisman"
 	item_color = "talisman"
+	armor = list(melee = 5, bullet = 5, laser = 5, energy = 5, bomb = 20, bio = 20, rad = 5, fire = 0, acid = 25)
+
+
+/obj/item/clothing/accessory/skullcodpiece
+	name = "skull codpiece"
+	desc = "A skull shaped ornament, intended to protect the important things in life."
+	icon_state = "skull"
+	item_color = "skull"
+	above_suit = TRUE
 	armor = list(melee = 5, bullet = 5, laser = 5, energy = 5, bomb = 20, bio = 20, rad = 5, fire = 0, acid = 25)

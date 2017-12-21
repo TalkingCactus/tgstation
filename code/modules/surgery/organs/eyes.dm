@@ -3,11 +3,12 @@
 	icon_state = "eyeballs"
 	desc = "I see you!"
 	zone = "eyes"
-	slot = "eye_sight"
+	slot = ORGAN_SLOT_EYES
 	gender = PLURAL
 
 	var/sight_flags = 0
 	var/see_in_dark = 2
+	var/eye_damage = 0
 	var/tint = 0
 	var/eye_color = "" //set to a hex code to override a mob's eye color
 	var/old_eye_color = "fff"
@@ -15,7 +16,7 @@
 	var/see_invisible = SEE_INVISIBLE_LIVING
 	var/lighting_alpha
 
-/obj/item/organ/eyes/Insert(mob/living/carbon/M, special = 0)
+/obj/item/organ/eyes/Insert(mob/living/carbon/M, special = 0, drop_if_replaced = FALSE)
 	..()
 	if(ishuman(owner))
 		var/mob/living/carbon/human/HMN = owner
@@ -43,9 +44,11 @@
 	see_in_dark = 8
 	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_VISIBLE
 	actions_types = list(/datum/action/item_action/organ_action/use)
+	sight_flags = SEE_BLACKNESS
 	var/night_vision = TRUE
 
 /obj/item/organ/eyes/night_vision/ui_action_click()
+	sight_flags = initial(sight_flags)
 	switch(lighting_alpha)
 		if (LIGHTING_PLANE_ALPHA_VISIBLE)
 			lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_VISIBLE
@@ -55,18 +58,22 @@
 			lighting_alpha = LIGHTING_PLANE_ALPHA_INVISIBLE
 		else
 			lighting_alpha = LIGHTING_PLANE_ALPHA_VISIBLE
+			sight_flags &= ~SEE_BLACKNESS
 	owner.update_sight()
 
 /obj/item/organ/eyes/night_vision/alien
 	name = "alien eyes"
 	desc = "It turned out they had them after all!"
-	see_in_dark = 8
-	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_VISIBLE
 	sight_flags = SEE_MOBS
 
 /obj/item/organ/eyes/night_vision/zombie
 	name = "undead eyes"
-	desc = "Somewhat counterintuitively, these half rotten eyes actually have superior vision to those of a living human."
+	desc = "Somewhat counterintuitively, these half-rotten eyes actually have superior vision to those of a living human."
+
+/obj/item/organ/eyes/night_vision/nightmare
+	name = "burning red eyes"
+	desc = "Even without their shadowy owner, looking at these eyes gives you a sense of dread."
+	icon_state = "burning_eyes"
 
 ///Robotic
 
@@ -93,10 +100,9 @@
 	sight_flags = SEE_MOBS | SEE_OBJS | SEE_TURFS
 
 /obj/item/organ/eyes/robotic/thermals
-	name = "Thermals eyes"
-	desc = "These cybernetic eye implants will give you Thermal vision. Vertical slit pupil included."
+	name = "thermal eyes"
+	desc = "These cybernetic eye implants will give you thermal vision. Vertical slit pupil included."
 	eye_color = "FC0"
-	origin_tech = "materials=5;programming=4;biotech=4;magnets=4;syndicate=1"
 	sight_flags = SEE_MOBS
 	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_VISIBLE
 	flash_protect = -1
@@ -104,7 +110,7 @@
 
 /obj/item/organ/eyes/robotic/flashlight
 	name = "flashlight eyes"
-	desc = "It's two flashlights rigged together with some wire. Why would you put these in someones head?"
+	desc = "It's two flashlights rigged together with some wire. Why would you put these in someone's head?"
 	eye_color ="fee5a3"
 	icon = 'icons/obj/lighting.dmi'
 	icon_state = "flashlight_eyes"
@@ -134,7 +140,6 @@
 /obj/item/organ/eyes/robotic/shield
 	name = "shielded robotic eyes"
 	desc = "These reactive micro-shields will protect you from welders and flashes without obscuring your vision."
-	origin_tech = "materials=4;biotech=3;engineering=4;plasmatech=3"
 	flash_protect = 2
 
 /obj/item/organ/eyes/robotic/shield/emp_act(severity)
@@ -145,7 +150,6 @@
 /obj/item/organ/eyes/robotic/glow
 	name = "High Luminosity Eyes"
 	desc = "Special glowing eyes, used by snowflakes who want to be special."
-	origin_tech = "materials=3;biotech=3;engineering=3;magnets=4"
 	eye_color = "000"
 	actions_types = list(/datum/action/item_action/organ_action/use, /datum/action/item_action/organ_action/toggle)
 	var/current_color_string = "#ffffff"
@@ -195,7 +199,7 @@
 		return
 	var/range = input(user, "Enter range (0 - [max_light_beam_distance])", "Range Select", 0) as null|num
 
-	set_distance(Clamp(range, 0, max_light_beam_distance))
+	set_distance(CLAMP(range, 0, max_light_beam_distance))
 	assume_rgb(C)
 
 /obj/item/organ/eyes/robotic/glow/proc/assume_rgb(newcolor)

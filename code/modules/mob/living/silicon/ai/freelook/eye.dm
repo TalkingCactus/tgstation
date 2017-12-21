@@ -21,7 +21,10 @@
 		if(!isturf(ai.loc))
 			return
 		T = get_turf(T)
-		loc = T
+		if (T)
+			forceMove(T)
+		else
+			moveToNullspace() // ????
 		if(use_static)
 			GLOB.cameranet.visibility(src)
 		if(ai.client)
@@ -106,8 +109,8 @@
 	set category = "AI Commands"
 	set name = "Toggle Camera Acceleration"
 
-	if(usr.stat == 2)
-		return //won't work if dead
+	if(incapacitated())
+		return
 	acceleration = !acceleration
 	to_chat(usr, "Camera acceleration has been toggled [acceleration ? "on" : "off"].")
 
