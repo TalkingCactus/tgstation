@@ -241,7 +241,7 @@
 		return 1
 
 /mob/living/proc/InCritical()
-	return (src.health < 0 && src.health > -95 && stat == UNCONSCIOUS)
+	return (health < 0 && health > -100 && stat == UNCONSCIOUS)
 
 //This proc is used for mobs which are affected by pressure to calculate the amount of pressure that actually
 //affects them once clothing is factored in. ~Errorage
@@ -794,9 +794,6 @@
 	return 1
 
 /mob/living/carbon/proc/update_stamina()
-	return
-
-/mob/living/carbon/human/update_stamina()
 	if(staminaloss)
 		var/total_health = (health - staminaloss)
 		if(total_health <= HEALTH_THRESHOLD_CRIT && !stat)
@@ -804,6 +801,9 @@
 			Weaken(5)
 			setStaminaLoss(health - 2)
 	update_health_hud()
+
+/mob/living/carbon/alien/update_stamina()
+	return
 
 /mob/living/proc/owns_soul()
 	if(mind)
@@ -820,7 +820,7 @@
 
 /mob/living/proc/has_bane(banetype)
 	var/datum/antagonist/devil/devilInfo = is_devil(src)
-	return (banetype == devilInfo.bane)
+	return devilInfo && banetype == devilInfo.bane
 
 /mob/living/proc/check_weakness(obj/item/weapon, mob/living/attacker)
 	if(mind && mind.has_antag_datum(ANTAG_DATUM_DEVIL))

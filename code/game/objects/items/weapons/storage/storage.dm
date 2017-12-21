@@ -405,10 +405,9 @@
 	if(iscyborg(user))
 		return	//Robots can't interact with storage items.
 
-	if(contents.len >= storage_slots) //don't use items on the backpack if they don't fit
-		return 1
-
 	if(!can_be_inserted(W, 0 , user))
+		if(contents.len >= storage_slots) //don't use items on the backpack if they don't fit
+			return 1
 		return 0
 
 	handle_item_insertion(W, 0 , user)
@@ -502,7 +501,7 @@
 
 
 /obj/item/weapon/storage/Initialize(mapload)
-	..()
+	. = ..()
 
 	can_hold = typecacheof(can_hold)
 	cant_hold = typecacheof(cant_hold)
