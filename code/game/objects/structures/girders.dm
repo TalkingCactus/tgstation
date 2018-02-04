@@ -86,7 +86,7 @@
 					S.use(5)
 					to_chat(user, "<span class='notice'>You add the plating.</span>")
 					var/turf/T = get_turf(src)
-					T.ChangeTurf(/turf/closed/wall/mineral/iron)
+					T.PlaceOnTop(/turf/closed/wall/mineral/iron)
 					transfer_fingerprints_to(T)
 					qdel(src)
 				return
@@ -120,7 +120,7 @@
 					S.use(2)
 					to_chat(user, "<span class='notice'>You add the plating.</span>")
 					var/turf/T = get_turf(src)
-					T.ChangeTurf(/turf/closed/wall)
+					T.PlaceOnTop(/turf/closed/wall)
 					transfer_fingerprints_to(T)
 					qdel(src)
 				return
@@ -150,7 +150,7 @@
 						S.use(1)
 						to_chat(user, "<span class='notice'>You fully reinforce the wall.</span>")
 						var/turf/T = get_turf(src)
-						T.ChangeTurf(/turf/closed/wall/r_wall)
+						T.PlaceOnTop(/turf/closed/wall/r_wall)
 						transfer_fingerprints_to(T)
 						qdel(src)
 					return
@@ -194,7 +194,7 @@
 					S.use(2)
 					to_chat(user, "<span class='notice'>You add the plating.</span>")
 					var/turf/T = get_turf(src)
-					T.ChangeTurf(text2path("/turf/closed/wall/mineral/[M]"))
+					T.PlaceOnTop(text2path("/turf/closed/wall/mineral/[M]"))
 					transfer_fingerprints_to(T)
 					qdel(src)
 				return
@@ -346,7 +346,7 @@
 
 /obj/structure/girder/cult/attackby(obj/item/W, mob/user, params)
 	add_fingerprint(user)
-	if(istype(W, /obj/item/tome) && iscultist(user)) //Cultists can demolish cult girders instantly with their tomes
+	if(istype(W, /obj/item/melee/cultblade/dagger) && iscultist(user)) //Cultists can demolish cult girders instantly with their tomes
 		user.visible_message("<span class='warning'>[user] strikes [src] with [W]!</span>", "<span class='notice'>You demolish [src].</span>")
 		var/obj/item/stack/sheet/runed_metal/R = new(get_turf(src))
 		R.amount = 1
@@ -397,7 +397,7 @@
 			user.visible_message("<span class='notice'>[user] plates [src] with runed metal.</span>", "<span class='notice'>You construct a runed wall.</span>")
 			R.use(1)
 			var/turf/T = get_turf(src)
-			T.ChangeTurf(/turf/closed/wall/mineral/cult)
+			T.PlaceOnTop(/turf/closed/wall/mineral/cult)
 			qdel(src)
 
 	else
@@ -424,7 +424,7 @@
 	switch(passed_mode)
 		if(RCD_FLOORWALL)
 			to_chat(user, "<span class='notice'>You finish a wall.</span>")
-			T.ChangeTurf(/turf/closed/wall)
+			T.PlaceOnTop(/turf/closed/wall)
 			qdel(src)
 			return TRUE
 		if(RCD_DECONSTRUCT)

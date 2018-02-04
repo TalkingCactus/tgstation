@@ -312,8 +312,14 @@ function output(message, flag) {
 			{
 				lastmessages.append($('<span/>', { 'class': 'r', 'text': 2}));
 			}
-			if(parseInt(lastmessages.css("font-size")) < 24) //Completely arbitrary max size
-				lastmessages.css("font-size","+=2")
+			var insertedBadge = $(lastmessages).find('.r');
+			insertedBadge.animate({
+				"font-size": "0.9em"
+			}, 100, function() {
+				insertedBadge.animate({
+					"font-size": "0.7em"
+				}, 100);
+			});
 			opts.messageCount--;
 			handled = true;
 		}
@@ -641,7 +647,11 @@ $(function() {
 		opts.updatedVolume = newVolume;
 		sendVolumeUpdate();
 		internalOutput('<span class="internal boldnshit">Loaded music volume of: '+savedConfig.smusicVolume+'</span>', 'internal');
-	} 
+	}
+	else{
+		$('#adminMusic').prop('volume', opts.defaultMusicVolume / 100);
+	}
+	
 	if (savedConfig.smessagecombining) {
 		if (savedConfig.smessagecombining == 'false') {
 			opts.messageCombining = false;
@@ -649,9 +659,7 @@ $(function() {
 			opts.messageCombining = true;
 		}
 	}
-	else {
-		$('#adminMusic').prop('volume', opts.defaultMusicVolume / 100);
-	}
+
 
 	(function() {
 		var dataCookie = getCookie('connData');

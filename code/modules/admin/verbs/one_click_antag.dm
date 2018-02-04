@@ -35,7 +35,7 @@
 		return FALSE
 	if(onstation)
 		var/turf/T = get_turf(applicant)
-		if(!(T.z in GLOB.station_z_levels))
+		if(!is_station_level(T.z))
 			return FALSE
 	if(conscious && applicant.stat) //incase you don't care about a certain antag being unconcious when made, ie if they have selfhealing abilities.
 		return FALSE
@@ -306,7 +306,6 @@
 					door.open()
 
 			//Assign antag status and the mission
-			SSticker.mode.traitors += Commando.mind
 			Commando.mind.special_role = "deathsquad"
 
 			var/datum/objective/missionobj = new
@@ -361,7 +360,6 @@
 		newmob.equipOutfit(/datum/outfit/centcom_official)
 
 		//Assign antag status and the mission
-		SSticker.mode.traitors += newmob.mind
 		newmob.mind.special_role = "official"
 
 		var/datum/objective/missionobj = new
@@ -469,7 +467,6 @@
 						door.open()
 
 			//Assign antag status and the mission
-			SSticker.mode.traitors += ERTOperative.mind
 			ERTOperative.mind.special_role = "ERT"
 
 			var/datum/objective/missionobj = new

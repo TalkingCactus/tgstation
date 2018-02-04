@@ -41,7 +41,7 @@
 					state = 0
 				return
 			if(istype(P, /obj/item/circuitboard/computer) && !circuit)
-				if(!user.transferItemToLoc(P, null))
+				if(!user.transferItemToLoc(P, src))
 					return
 				playsound(src, 'sound/items/deconstruct.ogg', 50, 1)
 				to_chat(user, "<span class='notice'>You place [P] inside the frame.</span>")
@@ -121,7 +121,7 @@
 				to_chat(user, "<span class='notice'>You remove the glass panel.</span>")
 				state = 3
 				icon_state = "3"
-				var/obj/item/stack/sheet/glass/G = new (drop_location(), 2)
+				var/obj/item/stack/sheet/glass/G = new(drop_location(), 2)
 				G.add_fingerprint(user)
 				return
 			if(istype(P, /obj/item/screwdriver))

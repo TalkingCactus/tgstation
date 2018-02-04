@@ -164,8 +164,10 @@ GLOBAL_LIST_EMPTY(allCasters)
 /datum/newscaster/feed_network/proc/save_photo(icon/photo)
 	var/photo_file = copytext(md5("\icon[photo]"), 1, 6)
 	if(!fexists("[GLOB.log_directory]/photos/[photo_file].png"))
-		var/icon/p = icon(photo, frame = 1)
-		fcopy(p, "[GLOB.log_directory]/photos/[photo_file].png")
+		//Clean up repeated frames
+		var/icon/clean = new /icon()
+		clean.Insert(photo, "", SOUTH, 1, 0)
+		fcopy(clean, "[GLOB.log_directory]/photos/[photo_file].png")
 	return photo_file
 
 /obj/item/wallframe/newscaster
@@ -601,10 +603,10 @@ GLOBAL_LIST_EMPTY(allCasters)
 			screen = 14
 			updateUsrDialog()
 		else if(href_list["set_wanted_name"])
-			channel_name = trim(stripped_input(usr, "Provide the name of the Wanted person", "Network Security Handler"))
+			channel_name = stripped_input(usr, "Provide the name of the Wanted person", "Network Security Handler")
 			updateUsrDialog()
 		else if(href_list["set_wanted_desc"])
-			msg = trim(stripped_input(usr, "Provide a description of the Wanted person and any other details you deem important", "Network Security Handler"))
+			msg = stripped_input(usr, "Provide a description of the Wanted person and any other details you deem important", "Network Security Handler")
 			updateUsrDialog()
 		else if(href_list["submit_wanted"])
 			var/input_param = text2num(href_list["submit_wanted"])

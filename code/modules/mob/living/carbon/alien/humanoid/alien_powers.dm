@@ -12,7 +12,7 @@ Doesn't work on other aliens/AI.*/
 	var/plasma_cost = 0
 	var/check_turf = FALSE
 	has_action = TRUE
-	datum/action/spell_action/alien/action
+	base_action = /datum/action/spell_action/alien
 	action_icon = 'icons/mob/actions/actions_xeno.dmi'
 	action_icon_state = "spell_default"
 	action_background_icon_state = "bg_alien"
@@ -171,7 +171,7 @@ Doesn't work on other aliens/AI.*/
 		return corrode(O,user)
 
 /mob/living/carbon/proc/corrosive_acid(O as obj|turf in oview(1)) // right click menu verb ugh
-	set name = "Corrossive Acid"
+	set name = "Corrosive Acid"
 
 	if(!iscarbon(usr))
 		return

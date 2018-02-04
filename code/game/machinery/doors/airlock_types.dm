@@ -79,69 +79,49 @@
 	opacity = 0
 	glass = TRUE
 
-/obj/machinery/door/airlock/glass_command
-	icon = 'icons/obj/doors/airlocks/station/command.dmi'
+/obj/machinery/door/airlock/command/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_com
 	glass = TRUE
 	normal_integrity = 400
 
-/obj/machinery/door/airlock/glass_engineering
-	icon = 'icons/obj/doors/airlocks/station/engineering.dmi'
+/obj/machinery/door/airlock/engineering/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_eng
 	glass = TRUE
 
-/obj/machinery/door/airlock/glass_security
-	icon = 'icons/obj/doors/airlocks/station/security.dmi'
+/obj/machinery/door/airlock/security/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_sec
 	glass = TRUE
 	normal_integrity = 400
 
-/obj/machinery/door/airlock/glass_security/abandoned
+/obj/machinery/door/airlock/security/glass/abandoned
 	abandoned = TRUE
 
-/obj/machinery/door/airlock/glass_medical
-	icon = 'icons/obj/doors/airlocks/station/medical.dmi'
+/obj/machinery/door/airlock/medical/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_med
 	glass = TRUE
 
-/obj/machinery/door/airlock/glass_research
-	icon = 'icons/obj/doors/airlocks/station/research.dmi'
+/obj/machinery/door/airlock/research/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_research
 	glass = TRUE
 
-/obj/machinery/door/airlock/glass_mining
-	icon = 'icons/obj/doors/airlocks/station/mining.dmi'
+/obj/machinery/door/airlock/mining/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_min
 	glass = TRUE
 
-/obj/machinery/door/airlock/glass_atmos
-	icon = 'icons/obj/doors/airlocks/station/atmos.dmi'
+/obj/machinery/door/airlock/atmos/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_atmo
 	glass = TRUE
 
-/obj/machinery/door/airlock/glass_science
-	icon = 'icons/obj/doors/airlocks/station/science.dmi'
+/obj/machinery/door/airlock/science/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_science
 	glass = TRUE
 
-/obj/machinery/door/airlock/glass_virology
-	icon = 'icons/obj/doors/airlocks/station/virology.dmi'
+/obj/machinery/door/airlock/virology/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_viro
 	glass = TRUE
 
-/obj/machinery/door/airlock/glass_maintenance
-	icon = 'icons/obj/doors/airlocks/station/maintenance.dmi'
+/obj/machinery/door/airlock/maintenance/glass
 	opacity = 0
-	assemblytype = /obj/structure/door_assembly/door_assembly_mai
 	glass = TRUE
 
 /obj/machinery/door/airlock/maintenance/external/glass
@@ -246,14 +226,14 @@
 	opacity = 0
 	glass = TRUE
 
-/obj/machinery/door/airlock/clown
+/obj/machinery/door/airlock/bananium
 	name = "bananium airlock"
 	desc = "Honkhonkhonk"
 	icon = 'icons/obj/doors/airlocks/station/bananium.dmi'
 	assemblytype = /obj/structure/door_assembly/door_assembly_bananium
 	doorOpen = 'sound/items/bikehorn.ogg'
 
-/obj/machinery/door/airlock/clown/glass
+/obj/machinery/door/airlock/bananium/glass
 	opacity = 0
 	glass = TRUE
 
@@ -426,6 +406,7 @@
 	hackProof = TRUE
 	aiControlDisabled = TRUE
 	req_access = list(ACCESS_BLOODCULT)
+	damage_deflection = 10
 	var/openingoverlaytype = /obj/effect/temp_visual/cult/door
 	var/friendly = FALSE
 
@@ -455,6 +436,9 @@
 /obj/machinery/door/airlock/cult/narsie_act()
 	return
 
+/obj/machinery/door/airlock/cult/emp_act(severity)
+	return
+
 /obj/machinery/door/airlock/cult/friendly
 	friendly = TRUE
 
@@ -480,6 +464,13 @@
 
 /obj/machinery/door/airlock/cult/unruned/glass/friendly
 	friendly = TRUE
+
+/obj/machinery/door/airlock/cult/weak
+	name = "brittle cult airlock"
+	desc = "An airlock hastily corrupted by blood magic, it is unusually brittle in this state."
+	normal_integrity = 180
+	damage_deflection = 5
+	armor = list(melee = 0, bullet = 0, laser = 0,energy = 0, bomb = 0, bio = 0, rad = 0, fire = 0, acid = 0)
 
 //Pinion airlocks: Clockwork doors that only let servants of Ratvar through.
 /obj/machinery/door/airlock/clockwork

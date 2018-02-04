@@ -291,25 +291,25 @@ ARCD
 					if("Public")
 						airlock_type = /obj/machinery/door/airlock/public/glass
 					if("Engineering")
-						airlock_type = /obj/machinery/door/airlock/glass_engineering
+						airlock_type = /obj/machinery/door/airlock/engineering/glass
 					if("Atmospherics")
-						airlock_type = /obj/machinery/door/airlock/glass_atmos
+						airlock_type = /obj/machinery/door/airlock/atmos/glass
 					if("Security")
-						airlock_type = /obj/machinery/door/airlock/glass_security
+						airlock_type = /obj/machinery/door/airlock/security/glass
 					if("Command")
-						airlock_type = /obj/machinery/door/airlock/glass_command
+						airlock_type = /obj/machinery/door/airlock/command/glass
 					if("Medical")
-						airlock_type = /obj/machinery/door/airlock/glass_medical
+						airlock_type = /obj/machinery/door/airlock/medical/glass
 					if("Research")
-						airlock_type = /obj/machinery/door/airlock/glass_research
+						airlock_type = /obj/machinery/door/airlock/research/glass
 					if("Science")
-						airlock_type = /obj/machinery/door/airlock/glass_science
+						airlock_type = /obj/machinery/door/airlock/science/glass
 					if("Virology")
-						airlock_type = /obj/machinery/door/airlock/glass_virology
+						airlock_type = /obj/machinery/door/airlock/virology/glass
 					if("Mining")
-						airlock_type = /obj/machinery/door/airlock/glass_mining
+						airlock_type = /obj/machinery/door/airlock/mining/glass
 					if("Maintenance")
-						airlock_type = /obj/machinery/door/airlock/glass_maintenance
+						airlock_type = /obj/machinery/door/airlock/maintenance/glass
 					if("External")
 						airlock_type = /obj/machinery/door/airlock/external/glass
 					if("External Maintenance")
@@ -497,7 +497,7 @@ ARCD
 
 /obj/item/construction/rld/ui_action_click(mob/user, var/datum/action/A)
 	if(istype(A, /datum/action/item_action/pick_color))
-		color_choice = input(user,"Choose Color") as color
+		color_choice = input(user,"","Choose Color",color_choice) as color
 	else
 		..()
 

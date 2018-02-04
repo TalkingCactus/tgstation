@@ -26,7 +26,8 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 
 	max_integrity = 200
 
-	can_be_hit = FALSE
+	obj_flags = NONE
+	var/item_flags = NONE
 
 	var/hitsound = null
 	var/usesound = null
@@ -61,37 +62,22 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 	var/equip_delay_other = 20 //In deciseconds, how long an item takes to put on another person
 	var/strip_delay = 40 //In deciseconds, how long an item takes to remove from another person
 	var/breakouttime = 0
-	var/being_removed = FALSE
 	var/list/materials
-	var/needs_permit = 0			//Used by security bots to determine if this item is safe for public use.
-	var/emagged = FALSE
 
 	var/list/attack_verb //Used in attackby() to say how something was attacked "[x] has been [z.attack_verb] by [y] with [z]"
 	var/list/species_exception = null	// list() of species types, if a species cannot put items in a certain slot, but species type is in list, it will be able to wear that item
-
-	var/suittoggled = FALSE
-	var/hooded = 0
 
 	var/mob/thrownby = null
 
 	mouse_drag_pointer = MOUSE_ACTIVE_POINTER //the icon to indicate this object is being dragged
 
-	//So items can have custom embedd values
-	//Because customisation is king
-	var/embed_chance = EMBED_CHANCE
-	var/embedded_fall_chance = EMBEDDED_ITEM_FALLOUT
-	var/embedded_pain_chance = EMBEDDED_PAIN_CHANCE
-	var/embedded_pain_multiplier = EMBEDDED_PAIN_MULTIPLIER  //The coefficient of multiplication for the damage this item does while embedded (this*w_class)
-	var/embedded_fall_pain_multiplier = EMBEDDED_FALL_PAIN_MULTIPLIER //The coefficient of multiplication for the damage this item does when falling out of a limb (this*w_class)
-	var/embedded_impact_pain_multiplier = EMBEDDED_IMPACT_PAIN_MULTIPLIER //The coefficient of multiplication for the damage this item does when first embedded (this*w_class)
-	var/embedded_unsafe_removal_pain_multiplier = EMBEDDED_UNSAFE_REMOVAL_PAIN_MULTIPLIER //The coefficient of multiplication for the damage removing this without surgery causes (this*w_class)
-	var/embedded_unsafe_removal_time = EMBEDDED_UNSAFE_REMOVAL_TIME //A time in ticks, multiplied by the w_class.
+	var/datum/embedding_behavior/embedding
 
 	var/flags_cover = 0 //for flags such as GLASSESCOVERSEYES
 	var/heat = 0
 	var/sharpness = IS_BLUNT
 
-	var/tool_behaviour = TOOL_NONE
+	var/tool_behaviour = NONE
 	var/toolspeed = 1
 
 	var/block_chance = 0
@@ -109,11 +95,9 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 
 
 	//Tooltip vars
-	var/in_inventory = FALSE//is this item equipped into an inventory slot or hand of a mob?
 	var/force_string //string form of an item's force. Edit this var only to set a custom force string
 	var/last_force_string_check = 0
 	var/tip_timer
-	var/force_string_override
 
 	var/trigger_guard = TRIGGER_GUARD_NONE
 
@@ -133,13 +117,20 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 		rpg_loot = new(src)
 
 	if(force_string)
-		force_string_override = TRUE
+		item_flags |= FORCE_STRING_OVERRIDE
 
 	if(!hitsound)
 		if(damtype == "fire")
 			hitsound = 'sound/items/welder.ogg'
 		if(damtype == "brute")
 			hitsound = "swing_hit"
+
+		if (!embedding)
+			embedding = getEmbeddingBehavior()
+		else if (islist(embedding))
+			embedding = getEmbeddingBehavior(arglist(embedding))
+		else if (!istype(embedding, /datum/embedding_behavior))
+			stack_trace("Invalid type [embedding.type] found in .embedding during /obj/item Initialize()")
 
 /obj/item/Destroy()
 	flags_1 &= ~DROPDEL_1	//prevent reqdels
@@ -411,12 +402,12 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 		A.Remove(user)
 	if(DROPDEL_1 & flags_1)
 		qdel(src)
-	in_inventory = FALSE
+	item_flags &= ~IN_INVENTORY
 	SendSignal(COMSIG_ITEM_DROPPED,user)
 
 // called just as an item is picked up (loc is not yet changed)
 /obj/item/proc/pickup(mob/user)
-	in_inventory = TRUE
+	item_flags |= IN_INVENTORY
 	return
 
 
@@ -444,7 +435,7 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 		if(item_action_slot_check(slot, user)) //some items only give their actions buttons when in a specific slot.
 			A.Grant(user)
 	SendSignal(COMSIG_ITEM_EQUIPPED,user,slot)
-	in_inventory = TRUE
+	item_flags |= IN_INVENTORY
 
 //sometimes we only want to grant the item's action if it's equipped in a specific slot.
 /obj/item/proc/item_action_slot_check(slot, mob/user)
@@ -545,7 +536,7 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 		M.adjust_blurriness(15)
 		if(M.stat != DEAD)
 			to_chat(M, "<span class='danger'>Your eyes start to bleed profusely!</span>")
-		if(!(M.has_disability(BLIND) || M.has_disability(NEARSIGHT)))
+		if(!(M.has_trait(TRAIT_BLIND) || M.has_trait(TRAIT_NEARSIGHT)))
 			to_chat(M, "<span class='danger'>You become nearsighted!</span>")
 		M.become_nearsighted(EYE_DAMAGE)
 		if(prob(50))
@@ -558,20 +549,6 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 		if (prob(eyes.eye_damage - 10 + 1))
 			M.become_blind(EYE_DAMAGE)
 			to_chat(M, "<span class='danger'>You go blind!</span>")
-
-/obj/item/clean_blood()
-	. = ..()
-	if(.)
-		if(initial(icon) && initial(icon_state))
-			var/index = blood_splatter_index()
-			var/icon/blood_splatter_icon = GLOB.blood_splatter_icons[index]
-			if(blood_splatter_icon)
-				cut_overlay(blood_splatter_icon)
-
-/obj/item/clothing/gloves/clean_blood()
-	. = ..()
-	if(.)
-		transfer_blood = 0
 
 /obj/item/singularity_pull(S, current_size)
 	..()
@@ -600,7 +577,7 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 	if (callback) //call the original callback
 		. = callback.Invoke()
 	throw_speed = initial(throw_speed) //explosions change this.
-	in_inventory = FALSE
+	item_flags &= ~IN_INVENTORY
 
 /obj/item/proc/remove_item_from_storage(atom/newLoc) //please use this if you're going to snowflake an item out of a obj/item/storage
 	if(!newLoc)
@@ -613,6 +590,36 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 
 /obj/item/proc/get_belt_overlay() //Returns the icon used for overlaying the object on a belt
 	return mutable_appearance('icons/obj/clothing/belt_overlays.dmi', icon_state)
+
+/obj/item/proc/update_slot_icon()
+	if(!ismob(loc))
+		return
+	var/mob/owner = loc
+	var/flags = slot_flags
+	if(flags & SLOT_OCLOTHING)
+		owner.update_inv_wear_suit()
+	if(flags & SLOT_ICLOTHING)
+		owner.update_inv_w_uniform()
+	if(flags & SLOT_GLOVES)
+		owner.update_inv_gloves()
+	if(flags & SLOT_EYES)
+		owner.update_inv_glasses()
+	if(flags & SLOT_EARS)
+		owner.update_inv_ears()
+	if(flags & SLOT_MASK)
+		owner.update_inv_wear_mask()
+	if(flags & SLOT_HEAD)
+		owner.update_inv_head()
+	if(flags & SLOT_FEET)
+		owner.update_inv_shoes()
+	if(flags & SLOT_ID)
+		owner.update_inv_wear_id()
+	if(flags & SLOT_BELT)
+		owner.update_inv_belt()
+	if(flags & SLOT_BACK)
+		owner.update_inv_back()
+	if(flags & SLOT_NECK)
+		owner.update_inv_neck()
 
 /obj/item/proc/is_hot()
 	return heat
@@ -719,15 +726,15 @@ GLOBAL_VAR_INIT(rpg_loot_items, FALSE)
 	last_force_string_check = force
 
 /obj/item/proc/openTip(location, control, params, user)
-	if(last_force_string_check != force && !force_string_override)
+	if(last_force_string_check != force && !(item_flags & FORCE_STRING_OVERRIDE))
 		set_force_string()
-	if(!force_string_override)
+	if(!(item_flags & FORCE_STRING_OVERRIDE))
 		openToolTip(user,src,params,title = name,content = "[desc]<br>[force ? "<b>Force:</b> [force_string]" : ""]",theme = "")
 	else
 		openToolTip(user,src,params,title = name,content = "[desc]<br><b>Force:</b> [force_string]",theme = "")
 
 /obj/item/MouseEntered(location, control, params)
-	if(in_inventory && usr.client.prefs.enable_tips)
+	if((item_flags & IN_INVENTORY) && usr.client.prefs.enable_tips)
 		var/timedelay = usr.client.prefs.tip_delay/100
 		var/user = usr
 		tip_timer = addtimer(CALLBACK(src, .proc/openTip, location, control, params, user), timedelay, TIMER_STOPPABLE)//timer takes delay in deciseconds, but the pref is in milliseconds. dividing by 100 converts it.

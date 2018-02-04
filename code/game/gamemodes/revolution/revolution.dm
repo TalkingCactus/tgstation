@@ -13,8 +13,8 @@
 	antag_flag = ROLE_REV
 	false_report_weight = 10
 	restricted_jobs = list("Security Officer", "Warden", "Detective", "AI", "Cyborg","Captain", "Head of Personnel", "Head of Security", "Chief Engineer", "Research Director", "Chief Medical Officer")
-	required_players = 20
-	required_enemies = 1
+	required_players = 30
+	required_enemies = 2
 	recommended_enemies = 3
 	enemy_minimum_age = 14
 
@@ -96,7 +96,7 @@
 
 	for(var/datum/mind/rev_mind in headrev_candidates)
 		log_game("[rev_mind.key] (ckey) has been selected as a head rev")
-		var/datum/antagonist/rev/head/new_head = new(rev_mind)
+		var/datum/antagonist/rev/head/new_head = new()
 		new_head.give_flash = TRUE
 		new_head.give_hud = TRUE
 		new_head.remove_clumsy = TRUE
@@ -164,7 +164,7 @@
 /datum/game_mode/revolution/proc/check_heads_victory()
 	for(var/datum/mind/rev_mind in revolution.head_revolutionaries())
 		var/turf/T = get_turf(rev_mind.current)
-		if(!considered_afk(rev_mind) && considered_alive(rev_mind) && (T.z in GLOB.station_z_levels))
+		if(!considered_afk(rev_mind) && considered_alive(rev_mind) && is_station_level(T.z))
 			if(ishuman(rev_mind.current))
 				return FALSE
 	return TRUE
