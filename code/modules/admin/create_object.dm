@@ -16,10 +16,10 @@
 /datum/admins/proc/quick_create_object(mob/user)
 	var/static/list/create_object_forms = list(
 	/obj, /obj/structure, /obj/machinery, /obj/effect,
-	/obj/item, /obj/item/clothing, /obj/item/stack, /obj/item/device,
+	/obj/item, /obj/item/clothing, /obj/item/stack, /obj/item,
 	/obj/item/reagent_containers, /obj/item/gun)
 
-	var/path = input("Select the path of the object you wish to create.", "Path", /obj) in create_object_forms
+	var/path = input("Select the path of the object you wish to create.", "Path", /obj) in sortList(create_object_forms, /proc/cmp_typepaths_asc)
 	var/html_form = create_object_forms[path]
 
 	if (!html_form)

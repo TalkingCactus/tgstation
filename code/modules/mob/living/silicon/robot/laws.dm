@@ -1,12 +1,9 @@
-/mob/living/silicon/robot/verb/cmd_show_laws()
-	set category = "Robot Commands"
-	set name = "Show Laws"
+/mob/living/silicon/robot/deadchat_lawchange()
+	if(lawupdate)
+		return
+	..()
 
-	if(usr.stat == DEAD)
-		return //won't work if dead
-	show_laws()
-
-/mob/living/silicon/robot/show_laws(everyone = 0)
+/mob/living/silicon/robot/show_laws(everyone = FALSE)
 	laws_sanity_check()
 	var/who
 
@@ -22,20 +19,14 @@
 			else
 				lawsync()
 				to_chat(src, "<b>Laws synced with AI, be sure to note any changes.</b>")
-				if(is_special_character(src))
-					to_chat(src, "<b>Remember, your AI does NOT share or know about your law 0.</b>")
-					if(src.connected_ai.laws.zeroth)
-						to_chat(src, "<b>While you are free to disregard it, your AI has a law 0 of its own.</b>")
 		else
 			to_chat(src, "<b>No AI selected to sync laws with, disabling lawsync protocol.</b>")
-			lawupdate = 0
+			lawupdate = FALSE
 
 	to_chat(who, "<b>Obey these laws:</b>")
 	laws.show_laws(who)
 	if (shell) //AI shell
 		to_chat(who, "<b>Remember, you are an AI remotely controlling your shell, other AIs can be ignored.</b>")
-	else if (is_special_character(src) && connected_ai)
-		to_chat(who, "<b>Remember, [connected_ai.name] is technically your master, but your objective comes first.</b>")
 	else if (connected_ai)
 		to_chat(who, "<b>Remember, [connected_ai.name] is your master, other AIs can be ignored.</b>")
 	else if (emagged)
@@ -46,7 +37,7 @@
 
 /mob/living/silicon/robot/proc/lawsync()
 	laws_sanity_check()
-	var/datum/ai_laws/master = connected_ai ? connected_ai.laws : null
+	var/datum/ai_laws/master = connected_ai?.laws
 	var/temp
 	if (master)
 		laws.ion.len = master.ion.len
@@ -55,12 +46,17 @@
 			if (length(temp) > 0)
 				laws.ion[index] = temp
 
-		if (!is_special_character(src)) //Don't override the borg's existing law 0, if any
-			if(master.zeroth_borg) //If the AI has a defined law zero specifically for its borgs, give it that one, otherwise give it the same one. --NEO
-				temp = master.zeroth_borg
-			else
-				temp = master.zeroth
-			laws.zeroth = temp
+		laws.hacked.len = master.hacked.len
+		for (var/index = 1, index <= master.hacked.len, index++)
+			temp = master.hacked[index]
+			if (length(temp) > 0)
+				laws.hacked[index] = temp
+
+		if(master.zeroth_borg) //If the AI has a defined law zero specifically for its borgs, give it that one, otherwise give it the same one. --NEO
+			temp = master.zeroth_borg
+		else
+			temp = master.zeroth
+		laws.zeroth = temp
 
 		laws.inherent.len = master.inherent.len
 		for (var/index = 1, index <= master.inherent.len, index++)
@@ -73,4 +69,13 @@
 			temp = master.supplied[index]
 			if (length(temp) > 0)
 				laws.supplied[index] = temp
-	return
+
+		var/datum/computer_file/program/robotact/program = modularInterface.get_robotact()
+		if(program)
+			program.force_full_update()
+
+	picturesync()
+
+/mob/living/silicon/robot/post_lawchange(announce = TRUE)
+	. = ..()
+	addtimer(CALLBACK(src, .proc/logevent,"Law update processed."), 0, TIMER_UNIQUE | TIMER_OVERRIDE) //Post_Lawchange gets spammed by some law boards, so let's wait it out

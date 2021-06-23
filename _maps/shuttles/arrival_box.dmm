@@ -24,10 +24,8 @@
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "g" = (
-/obj/machinery/computer/arcade,
-/obj/machinery/light{
-	dir = 1
-	},
+/obj/effect/spawner/randomarcade,
+/obj/machinery/light/directional/north,
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "h" = (
@@ -47,14 +45,10 @@
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "l" = (
-/obj/machinery/requests_console{
-	department = "Arrival shuttle";
-	name = "Arrivals Shuttle console";
-	pixel_y = 30
+/obj/machinery/requests_console/directional/north{
+	department = "Arrival shuttle"
 	},
-/obj/machinery/light{
-	dir = 1
-	},
+/obj/machinery/light/directional/north,
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "m" = (
@@ -72,27 +66,20 @@
 	},
 /turf/open/floor/plating/airless,
 /area/shuttle/arrival)
-"o" = (
-/obj/structure/window/shuttle,
-/obj/structure/grille,
-/turf/open/floor/plating,
-/area/shuttle/arrival)
 "p" = (
-/obj/structure/chair,
+/obj/structure/chair/comfy/shuttle,
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "q" = (
-/obj/structure/chair,
-/obj/machinery/light/small{
-	dir = 4
-	},
+/obj/structure/chair/comfy/shuttle,
+/obj/machinery/light/small/directional/east,
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "r" = (
-/obj/structure/chair{
+/obj/structure/chair/comfy/shuttle{
 	dir = 8
 	},
-/turf/open/floor/mineral/titanium/blue,
+/turf/open/floor/mineral/titanium,
 /area/shuttle/arrival)
 "s" = (
 /obj/structure/shuttle/engine/propulsion{
@@ -104,7 +91,7 @@
 /obj/machinery/door/airlock/titanium{
 	name = "Arrivals Shuttle Airlock"
 	},
-/turf/open/floor/mineral/titanium/blue,
+/turf/open/floor/mineral/titanium,
 /area/shuttle/arrival)
 "u" = (
 /obj/structure/shuttle/engine/propulsion{
@@ -114,18 +101,16 @@
 /turf/open/floor/plating/airless,
 /area/shuttle/arrival)
 "v" = (
-/obj/structure/chair{
+/obj/structure/chair/comfy/shuttle{
 	dir = 1
 	},
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "w" = (
-/obj/structure/chair{
+/obj/structure/chair/comfy/shuttle{
 	dir = 1
 	},
-/obj/machinery/light/small{
-	dir = 4
-	},
+/obj/machinery/light/small/directional/east,
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "x" = (
@@ -133,15 +118,12 @@
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "y" = (
-/obj/machinery/light,
+/obj/machinery/light/directional/south,
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "z" = (
-/obj/item/device/radio/intercom{
-	name = "Station Intercom (General)";
-	pixel_y = -29
-	},
-/obj/machinery/light,
+/obj/item/radio/intercom/directional/south,
+/obj/machinery/light/directional/south,
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/arrival)
 "A" = (
@@ -150,11 +132,14 @@
 	},
 /turf/open/floor/plating/airless,
 /area/shuttle/arrival)
+"S" = (
+/turf/open/floor/mineral/titanium,
+/area/shuttle/arrival)
 
 (1,1,1) = {"
 a
 b
-o
+d
 d
 d
 b
@@ -164,7 +149,7 @@ a
 a
 b
 p
-f
+S
 v
 b
 a
@@ -173,7 +158,7 @@ a
 a
 b
 q
-f
+S
 w
 b
 a
@@ -190,9 +175,9 @@ b
 (5,1,1) = {"
 b
 e
-f
-f
-f
+S
+S
+S
 x
 b
 "}
@@ -262,9 +247,9 @@ b
 (13,1,1) = {"
 c
 f
-f
-f
-f
+S
+S
+S
 f
 c
 "}

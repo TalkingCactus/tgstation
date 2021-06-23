@@ -35,9 +35,9 @@ GLOBAL_VAR(antag_prototypes)
 	var/data_part = antag_panel_data()
 	var/objective_part = antag_panel_objectives()
 	var/memory_part = antag_panel_memory()
-	
+
 	var/list/parts = listtrim(list(command_part,data_part,objective_part,memory_part))
-	
+
 	return parts.Join("<br>")
 
 /datum/antagonist/proc/antag_panel_objectives()
@@ -77,10 +77,10 @@ GLOBAL_VAR(antag_prototypes)
 	return common_commands
 
 /datum/mind/proc/get_special_statuses()
-	var/list/result = list()
+	var/list/result = LAZYCOPY(special_statuses)
 	if(!current)
 		result += "<span class='bad'>No body!</span>"
-	if(current && current.isloyal())
+	if(current && HAS_TRAIT(current, TRAIT_MINDSHIELD))
 		result += "<span class='good'>Mindshielded</span>"
 	//Move these to mob
 	if(iscyborg(current))
@@ -91,10 +91,10 @@ GLOBAL_VAR(antag_prototypes)
 
 /datum/mind/proc/traitor_panel()
 	if(!SSticker.HasRoundStarted())
-		alert("Not before round-start!", "Alert")
+		tgui_alert(usr, "Not before round-start!", "Alert")
 		return
 	if(QDELETED(src))
-		alert("This mind doesn't have a mob, or is deleted! For some reason!", "Edit Memory")
+		tgui_alert(usr, "This mind doesn't have a mob, or is deleted! For some reason!", "Edit Memory")
 		return
 
 	var/out = "<B>[name]</B>[(current && (current.real_name!=name))?" (as [current.real_name])":""]<br>"
@@ -146,7 +146,7 @@ GLOBAL_VAR(antag_prototypes)
 
 		if(!current_antag) //Show antagging options
 			if(possible_admin_antags.len)
-				antag_header_parts += "<span class='highlight'>None</span>"
+				antag_header_parts += span_highlight("None")
 				antag_header_parts += possible_admin_antags
 			else
 				//If there's no antags to show in this category skip the section completely
@@ -155,8 +155,8 @@ GLOBAL_VAR(antag_prototypes)
 			priority_sections |= antag_category
 			antag_header_parts += "<span class='bad'>[current_antag.name]</span>"
 			antag_header_parts += "<a href='?src=[REF(src)];remove_antag=[REF(current_antag)]'>Remove</a>"
-		
-		
+
+
 		//We aren't antag of this category, grab first prototype to check the prefs (This is pretty vague but really not sure how else to do this)
 		var/datum/antagonist/pref_source = current_antag
 		if(!pref_source)
@@ -167,25 +167,25 @@ GLOBAL_VAR(antag_prototypes)
 				break
 		if(pref_source.job_rank)
 			antag_header_parts += pref_source.enabled_in_preferences(src) ? "Enabled in Prefs" : "Disabled in Prefs"
-		
+
 		//Traitor : None | Traitor | IAA
-		//	Command1 | Command2 | Command3
-		//	Secret Word : Banana
-		//	Objectives:
-		//		1.Do the thing [a][b]
-		//		[a][b]
-		//	Memory:
-		//		Uplink Code: 777 Alpha
+		// Command1 | Command2 | Command3
+		// Secret Word : Banana
+		// Objectives:
+		// 1.Do the thing [a][b]
+		// [a][b]
+		// Memory:
+		// Uplink Code: 777 Alpha
 		var/cat_section = antag_header_parts.Join(" | ") + "<br>"
 		if(current_antag)
 			cat_section += current_antag.antag_panel()
 		sections[antag_category] = cat_section
-	
+
 	for(var/s in priority_sections)
 		out += sections[s]
 	for(var/s in sections - priority_sections)
 		out += sections[s]
-	
+
 	out += "<br>"
 
 	//Uplink
@@ -201,7 +201,7 @@ GLOBAL_VAR(antag_prototypes)
 		else
 			uplink_info += "<a href='?src=[REF(src)];common=uplink'>give</a>"
 		uplink_info += "." //hiel grammar
-		
+
 		out += uplink_info + "<br>"
 	//Common Memory
 	var/common_memory = "<span>Common Memory:</span>"
@@ -210,7 +210,7 @@ GLOBAL_VAR(antag_prototypes)
 	out += common_memory + "<br>"
 	//Other stuff
 	out += get_common_admin_commands()
-	
+
 	var/datum/browser/panel = new(usr, "traitorpanel", "", 600, 600)
 	panel.set_content(out)
 	panel.open()

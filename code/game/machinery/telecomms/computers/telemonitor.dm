@@ -10,19 +10,17 @@
 	icon_screen = "comm_monitor"
 	desc = "Monitors the details of the telecommunications network it's synced with."
 
-	var/screen = 0				// the screen number:
-	var/list/machinelist = list()	// the machines located by the computer
+	var/screen = 0 // the screen number:
+	var/list/machinelist = list() // the machines located by the computer
 	var/obj/machinery/telecomms/SelectedMachine
 
-	var/network = "NULL"		// the network to probe
+	var/network = "NULL" // the network to probe
 
-	var/temp = ""				// temporary feedback messages
+	var/temp = "" // temporary feedback messages
 	circuit = /obj/item/circuitboard/computer/comm_monitor
 
-/obj/machinery/computer/telecomms/monitor/attack_hand(mob/user)
-	if(..())
-		return
-	user.set_machine(src)
+/obj/machinery/computer/telecomms/monitor/ui_interact(mob/user)
+	. = ..()
 	var/dat = "<TITLE>Telecommunications Monitor</TITLE><center><b>Telecommunications Monitor</b></center>"
 
 	switch(screen)

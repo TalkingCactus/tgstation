@@ -1,12 +1,12 @@
 /* Utility Closets
  * Contains:
- *		Emergency Closet
- *		Fire Closet
- *		Tool Closet
- *		Radiation Closet
- *		Bombsuit Closet
- *		Hydrant
- *		First Aid
+ * Emergency Closet
+ * Fire Closet
+ * Tool Closet
+ * Radiation Closet
+ * Bombsuit Closet
+ * Hydrant
+ * First Aid
  */
 
 /*
@@ -26,7 +26,7 @@
 	if (prob(40))
 		new /obj/item/storage/toolbox/emergency(src)
 
-	switch (pickweight(list("small" = 40, "aid" = 25, "tank" = 20, "both" = 10, "nothing" = 4, "delete" = 1)))
+	switch (pickweight(list("small" = 35, "aid" = 30, "tank" = 20, "both" = 10, "nothing" = 4, "delete" = 1)))
 		if ("small")
 			new /obj/item/tank/internals/emergency_oxygen(src)
 			new /obj/item/tank/internals/emergency_oxygen(src)
@@ -35,11 +35,11 @@
 
 		if ("aid")
 			new /obj/item/tank/internals/emergency_oxygen(src)
-			new /obj/item/storage/firstaid/o2(src)
+			new /obj/item/storage/firstaid/emergency(src)
 			new /obj/item/clothing/mask/breath(src)
 
 		if ("tank")
-			new /obj/item/tank/internals/air(src)
+			new /obj/item/tank/internals/oxygen(src)
 			new /obj/item/clothing/mask/breath(src)
 
 		if ("both")
@@ -73,7 +73,7 @@
 /obj/structure/closet/firecloset/full/PopulateContents()
 	new /obj/item/clothing/suit/fire/firefighter(src)
 	new /obj/item/clothing/mask/gas(src)
-	new /obj/item/device/flashlight(src)
+	new /obj/item/flashlight(src)
 	new /obj/item/tank/internals/oxygen/red(src)
 	new /obj/item/extinguisher(src)
 	new /obj/item/clothing/head/hardhat/red(src)
@@ -92,7 +92,7 @@
 	if(prob(40))
 		new /obj/item/clothing/suit/hazardvest(src)
 	if(prob(70))
-		new /obj/item/device/flashlight(src)
+		new /obj/item/flashlight(src)
 	if(prob(70))
 		new /obj/item/screwdriver(src)
 	if(prob(70))
@@ -104,17 +104,17 @@
 	if(prob(70))
 		new /obj/item/wirecutters(src)
 	if(prob(70))
-		new /obj/item/device/t_scanner(src)
+		new /obj/item/t_scanner(src)
 	if(prob(20))
 		new /obj/item/storage/belt/utility(src)
 	if(prob(30))
-		new /obj/item/stack/cable_coil/random(src)
+		new /obj/item/stack/cable_coil(src)
 	if(prob(30))
-		new /obj/item/stack/cable_coil/random(src)
+		new /obj/item/stack/cable_coil(src)
 	if(prob(30))
-		new /obj/item/stack/cable_coil/random(src)
+		new /obj/item/stack/cable_coil(src)
 	if(prob(20))
-		new /obj/item/device/multitool(src)
+		new /obj/item/multitool(src)
 	if(prob(5))
 		new /obj/item/clothing/gloves/color/yellow(src)
 	if(prob(40))
@@ -132,7 +132,7 @@
 
 /obj/structure/closet/radiation/PopulateContents()
 	..()
-	new /obj/item/device/geiger_counter(src)
+	new /obj/item/geiger_counter(src)
 	new /obj/item/clothing/suit/radiation(src)
 	new /obj/item/clothing/head/radiation(src)
 
@@ -153,7 +153,7 @@
 
 /obj/structure/closet/bombcloset/security/PopulateContents()
 	new /obj/item/clothing/suit/bomb_suit/security(src)
-	new /obj/item/clothing/under/rank/security(src)
+	new /obj/item/clothing/under/rank/security/officer(src)
 	new /obj/item/clothing/shoes/jackboots(src)
 	new /obj/item/clothing/head/bomb_hood/security(src)
 

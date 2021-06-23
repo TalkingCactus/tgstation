@@ -9,30 +9,35 @@
 	integrity_failure = 0
 	can_weld_shut = 0
 	cutting_tool = /obj/item/wirecutters
-	open_sound = "rustle"
-	cutting_sound = 'sound/items/poster_ripped.ogg'
 	material_drop = /obj/item/stack/sheet/cardboard
 	delivery_icon = "deliverybox"
 	anchorable = FALSE
+	open_sound = 'sound/machines/cardboard_box.ogg'
+	close_sound = 'sound/machines/cardboard_box.ogg'
+	open_sound_volume = 35
+	close_sound_volume = 35
+	enable_door_overlay = FALSE
 	var/move_speed_multiplier = 1
 	var/move_delay = FALSE
 	var/egged = 0
 
-/obj/structure/closet/cardboard/relaymove(mob/user, direction)
-	if(opened || move_delay || user.stat || user.IsStun() || user.IsKnockdown() || user.IsUnconscious() || !isturf(loc) || !has_gravity(loc))
+/obj/structure/closet/cardboard/relaymove(mob/living/user, direction)
+	if(opened || move_delay || user.incapacitated() || !isturf(loc) || !has_gravity(loc))
 		return
 	move_delay = TRUE
-	if(step(src, direction))
-		addtimer(CALLBACK(src, .proc/ResetMoveDelay), CONFIG_GET(number/walk_delay) * move_speed_multiplier)
+	var/oldloc = loc
+	step(src, direction)
+	if(oldloc != loc)
+		addtimer(CALLBACK(src, .proc/ResetMoveDelay), CONFIG_GET(number/movedelay/walk_delay) * move_speed_multiplier)
 	else
-		ResetMoveDelay()
+		move_delay = FALSE
 
 /obj/structure/closet/cardboard/proc/ResetMoveDelay()
 	move_delay = FALSE
 
-/obj/structure/closet/cardboard/open()
-	if(opened || !can_open())
-		return 0
+/obj/structure/closet/cardboard/open(mob/living/user, force = FALSE)
+	if(opened || !can_open(user, force))
+		return FALSE
 	var/list/alerted = null
 	if(egged < world.time)
 		var/mob/living/Snake = null
@@ -48,14 +53,16 @@
 			if(!L.stat)
 				if(!L.incapacitated(ignore_restraints = 1))
 					L.face_atom(src)
-				L.do_alert_animation(L)
+				L.do_alert_animation()
 		playsound(loc, 'sound/machines/chime.ogg', 50, FALSE, -5)
 
-/mob/living/proc/do_alert_animation(atom/A)
-	var/image/I = image('icons/obj/closet.dmi', A, "cardboard_special", A.layer+1)
-	flick_overlay_view(I, A, 8)
-	I.alpha = 0
-	animate(I, pixel_z = 32, alpha = 255, time = 5, easing = ELASTIC_EASING)
+/// Does the MGS ! animation
+/atom/proc/do_alert_animation()
+	var/image/alert_image = image('icons/obj/closet.dmi', src, "cardboard_special", layer+1)
+	alert_image.plane = ABOVE_LIGHTING_PLANE
+	flick_overlay_view(alert_image, src, 8)
+	alert_image.alpha = 0
+	animate(alert_image, pixel_z = 32, alpha = 255, time = 5, easing = ELASTIC_EASING)
 
 
 /obj/structure/closet/cardboard/metal
@@ -67,7 +74,9 @@
 	resistance_flags = NONE
 	move_speed_multiplier = 2
 	cutting_tool = /obj/item/weldingtool
-	open_sound = 'sound/machines/click.ogg'
-	cutting_sound = 'sound/items/welder.ogg'
+	open_sound = 'sound/machines/crate_open.ogg'
+	close_sound = 'sound/machines/crate_close.ogg'
+	open_sound_volume = 35
+	close_sound_volume = 50
 	material_drop = /obj/item/stack/sheet/plasteel
 #undef SNAKE_SPAM_TICKS

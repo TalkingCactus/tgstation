@@ -2,9 +2,13 @@
 
 #Ignore everything in datafolder and subdirectories
 /data/**/*
+/tmp/**/*
 
 #Ignore byond config folder.
 /cfg/**/*
+
+# Ignore compiled linux libs in the root folder, e.g. librust_g.so
+/*.so
 
 #Ignore compiled files and other files generated during compilation.
 *.mdme
@@ -13,7 +17,6 @@
 *.lk
 *.int
 *.backup
-*.int
 ### https://raw.github.com/github/gitignore/cc542de017c606138a87ee4880e5f06b3a306def/Global/Linux.gitignore
 
 *~
@@ -49,27 +52,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-#*.so
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -77,8 +59,7 @@ var/
 *.spec
 
 # Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+pip-*.txt
 
 # Unit test / coverage reports
 htmlcov/
@@ -88,7 +69,6 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
-*,cover
 .hypothesis/
 
 # Translations
@@ -97,19 +77,12 @@ coverage.xml
 
 # Django stuff:
 *.log
-local_settings.py
-
-# Flask instance folder
-instance/
 
 # Scrapy stuff:
 .scrapy
 
 # Sphinx documentation
 docs/_build/
-
-# PyBuilder
-target/
 
 # IPython Notebook
 .ipynb_checkpoints
@@ -123,9 +96,8 @@ celerybeat-schedule
 # dotenv
 .env
 
-# virtualenv
-venv/
-ENV/
+# IntelliJ IDEA / PyCharm (with plugin)
+.idea
 
 # Spyder project settings
 .spyderproject
@@ -145,12 +117,6 @@ Desktop.ini
 
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
-
-# Windows Installer files
-#*.cab
-#*.msi
-#*.msm
-#*.msp
 
 # Windows shortcuts
 *.lnk
@@ -192,7 +158,38 @@ Temporary Items
 
 #Visual studio stuff
 *.vscode/*
-tools/MapAtmosFixer/MapAtmosFixer/obj/x86/Debug/MapAtmosFixer.csproj.CoreCompileInputs.cache
+/tools/MapAtmosFixer/MapAtmosFixer/obj/*
+/tools/MapAtmosFixer/MapAtmosFixer/bin/*
+/tools/CreditsTool/bin/*
+/tools/CreditsTool/obj/*
 
 #GitHub Atom
 .atom-build.json
+
+#KDevelop and Kate
+*.kdev4*
+*.kate-swp
+
+#extra map stuff
+/_maps/**/backup/
+/_maps/templates.dm
+
+#dmdoc default folder
+/dmdoc
+
+# Ignore custom music and title screens (amend as appropriate)
+/config/jukebox_music/sounds/*
+!/config/jukebox_music/sounds/exclude
+/config/title_music/sounds/*
+!/config/title_music/sounds/exclude
+/config/title_screens/images/*
+!/config/title_screens/images/exclude
+
+#Linux docker
+/tools/LinuxOneShot/SetupProgram/obj/*
+/tools/LinuxOneShot/SetupProgram/bin/*
+/tools/LinuxOneShot/SetupProgram/.vs
+/tools/LinuxOneShot/Database
+/tools/LinuxOneShot/TGS_Config
+/tools/LinuxOneShot/TGS_Instances
+/tools/LinuxOneShot/TGS_Logs

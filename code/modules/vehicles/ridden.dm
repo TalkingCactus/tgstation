@@ -2,18 +2,17 @@
 	name = "ridden vehicle"
 	can_buckle = TRUE
 	max_buckled_mobs = 1
-	buckle_lying = FALSE
-	default_driver_move = FALSE
-	var/legs_required = 2
-	var/arms_requires = 0	//why not?
-
-/obj/vehicle/ridden/Initialize()
-	. = ..()
-	LoadComponent(/datum/component/riding)
+	buckle_lying = 0
+	pass_flags_self = PASSTABLE
+	COOLDOWN_DECLARE(message_cooldown)
 
 /obj/vehicle/ridden/examine(mob/user)
 	. = ..()
-	to_chat(user, "<span class='notice'>Put a key inside it by clicking it with the key. If there's a key inside, you can remove it via Alt-Click!</span>")
+	if(key_type)
+		if(!inserted_key)
+			. += span_notice("Put a key inside it by clicking it with the key.")
+		else
+			. += span_notice("Alt-click [src] to remove the key.")
 
 /obj/vehicle/ridden/generate_action_type(actiontype)
 	var/datum/action/vehicle/ridden/A = ..()
@@ -30,42 +29,37 @@
 	return ..()
 
 /obj/vehicle/ridden/attackby(obj/item/I, mob/user, params)
-	if(key_type && !is_key(inserted_key) && is_key(I))
-		if(user.transferItemToLoc(I, src))
-			to_chat(user, "<span class='notice'>You insert \the [I] into \the [src].</span>")
-			if(inserted_key)	//just in case there's an invalid key
-				inserted_key.forceMove(drop_location())
-			inserted_key = I
-		else
-			to_chat(user, "<span class='notice'>[I] seems to be stuck to your hand!</span>")
+	if(!key_type || is_key(inserted_key) || !is_key(I))
+		return ..()
+	if(!user.transferItemToLoc(I, src))
+		to_chat(user, span_warning("[I] seems to be stuck to your hand!"))
 		return
-	return ..()
+	to_chat(user, span_notice("You insert \the [I] into \the [src]."))
+	if(inserted_key) //just in case there's an invalid key
+		inserted_key.forceMove(drop_location())
+	inserted_key = I
 
 /obj/vehicle/ridden/AltClick(mob/user)
-	if(user.Adjacent(src) && inserted_key)
-		if(!is_occupant(user))
-			to_chat(user, "<span class='notice'>You must be riding the [src] to remove [src]'s key!</span>")
-			return
-		to_chat(user, "<span class='notice'>You remove \the [inserted_key] from \the [src].</span>")
-		inserted_key.forceMove(drop_location())
-		user.put_in_hands(inserted_key)
-		inserted_key = null
-	return ..()
-
-/obj/vehicle/ridden/driver_move(mob/user, direction)
-	if(key_type && !is_key(inserted_key))
-		to_chat(user, "<span class='warning'>[src] has no key inserted!</span>")
-		return FALSE
-	var/datum/component/riding/R = GetComponent(/datum/component/riding)
-	R.handle_ride(user, direction)
-	return ..()
+	if(!inserted_key || !user.canUseTopic(src, BE_CLOSE, NO_DEXTERITY, FALSE, !issilicon(user)))
+		return ..()
+	if(!is_occupant(user))
+		to_chat(user, span_warning("You must be riding the [src] to remove [src]'s key!"))
+		return
+	to_chat(user, span_notice("You remove \the [inserted_key] from \the [src]."))
+	inserted_key.forceMove(drop_location())
+	user.put_in_hands(inserted_key)
+	inserted_key = null
 
 /obj/vehicle/ridden/user_buckle_mob(mob/living/M, mob/user, check_loc = TRUE)
 	if(!in_range(user, src) || !in_range(M, src))
 		return FALSE
-	. = ..(M, user, FALSE)
+	return ..(M, user, FALSE)
 
 /obj/vehicle/ridden/buckle_mob(mob/living/M, force = FALSE, check_loc = TRUE)
 	if(!force && occupant_amount() >= max_occupants)
 		return FALSE
+	return ..()
+
+/obj/vehicle/ridden/zap_act(power, zap_flags)
+	zap_buckle_check(power)
 	return ..()

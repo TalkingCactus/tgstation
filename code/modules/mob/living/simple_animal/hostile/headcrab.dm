@@ -1,4 +1,4 @@
-#define EGG_INCUBATION_TIME 120
+#define EGG_INCUBATION_TIME 4 MINUTES
 
 /mob/living/simple_animal/hostile/headcrab
 	name = "headslug"
@@ -11,18 +11,22 @@
 	maxHealth = 50
 	melee_damage_lower = 5
 	melee_damage_upper = 5
-	attacktext = "chomps"
+	attack_verb_continuous = "chomps"
+	attack_verb_simple = "chomp"
 	attack_sound = 'sound/weapons/bite.ogg'
+	attack_vis_effect = ATTACK_EFFECT_BITE
 	faction = list("creature")
 	robust_searching = 1
 	stat_attack = DEAD
 	obj_damage = 0
 	environment_smash = ENVIRONMENT_SMASH_NONE
 	speak_emote = list("squeaks")
-	ventcrawler = VENTCRAWLER_ALWAYS
 	var/datum/mind/origin
 	var/egg_lain = 0
-	gold_core_spawnable = HOSTILE_SPAWN //are you sure about this??
+
+/mob/living/simple_animal/hostile/headcrab/Initialize()
+	. = ..()
+	ADD_TRAIT(src, TRAIT_VENTCRAWLER_ALWAYS, INNATE_TRAIT)
 
 /mob/living/simple_animal/hostile/headcrab/proc/Infect(mob/living/carbon/victim)
 	var/obj/item/organ/body_egg/changeling_egg/egg = new(victim)
@@ -33,8 +37,8 @@
 		egg.origin = mind
 	for(var/obj/item/organ/I in src)
 		I.forceMove(egg)
-	visible_message("<span class='warning'>[src] plants something in [victim]'s flesh!</span>", \
-					"<span class='danger'>We inject our egg into [victim]'s body!</span>")
+	visible_message(span_warning("[src] plants something in [victim]'s flesh!"), \
+					span_danger("We inject our egg into [victim]'s body!"))
 	egg_lain = 1
 
 /mob/living/simple_animal/hostile/headcrab/AttackingTarget()
@@ -43,30 +47,29 @@
 		// Changeling egg can survive in aliens!
 		var/mob/living/carbon/C = target
 		if(C.stat == DEAD)
-			if(C.has_trait(TRAIT_XENO_HOST))
-				to_chat(src, "<span class='userdanger'>A foreign presence repels us from this body. Perhaps we should try to infest another?</span>")
+			if(HAS_TRAIT(C, TRAIT_XENO_HOST))
+				to_chat(src, span_userdanger("A foreign presence repels us from this body. Perhaps we should try to infest another?"))
 				return
 			Infect(target)
-			to_chat(src, "<span class='userdanger'>With our egg laid, our death approaches rapidly...</span>")
+			to_chat(src, span_userdanger("With our egg laid, our death approaches rapidly..."))
 			addtimer(CALLBACK(src, .proc/death), 100)
 
 /obj/item/organ/body_egg/changeling_egg
 	name = "changeling egg"
 	desc = "Twitching and disgusting."
 	var/datum/mind/origin
-	var/time
+	var/time = 0
 
-/obj/item/organ/body_egg/changeling_egg/egg_process()
+/obj/item/organ/body_egg/changeling_egg/egg_process(delta_time, times_fired)
 	// Changeling eggs grow in dead people
-	time++
+	time += delta_time * 10
 	if(time >= EGG_INCUBATION_TIME)
 		Pop()
 		Remove(owner)
 		qdel(src)
 
 /obj/item/organ/body_egg/changeling_egg/proc/Pop()
-	var/mob/living/carbon/monkey/M = new(owner)
-	owner.stomach_contents += M
+	var/mob/living/carbon/human/species/monkey/M = new(owner)
 
 	for(var/obj/item/organ/I in src)
 		I.Insert(M, 1)
@@ -75,11 +78,13 @@
 		origin.transfer_to(M)
 		var/datum/antagonist/changeling/C = origin.has_antag_datum(/datum/antagonist/changeling)
 		if(!C)
-			C = origin.add_antag_datum(/datum/antagonist/changeling/xenobio)
+			C = origin.add_antag_datum(/datum/antagonist/changeling)
 		if(C.can_absorb_dna(owner))
 			C.add_new_profile(owner)
 
-		C.purchasedpowers += new /obj/effect/proc_holder/changeling/humanform(null)
+		var/datum/action/changeling/humanform/hf = new
+		C.purchasedpowers += hf
+		C.regain_powers()
 		M.key = origin.key
 	owner.gib()
 

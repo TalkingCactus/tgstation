@@ -11,11 +11,6 @@
 "c" = (
 /turf/closed/wall/mineral/titanium,
 /area/shuttle/transport)
-"d" = (
-/obj/structure/window/shuttle,
-/obj/structure/grille,
-/turf/open/floor/plating,
-/area/shuttle/transport)
 "e" = (
 /obj/effect/spawner/structure/window/shuttle,
 /turf/open/floor/plating,
@@ -24,7 +19,7 @@
 /turf/closed/wall/mineral/titanium/interior,
 /area/shuttle/transport)
 "h" = (
-/obj/structure/chair{
+/obj/structure/chair/comfy/shuttle{
 	dir = 4
 	},
 /turf/open/floor/mineral/titanium/blue,
@@ -36,7 +31,7 @@
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/transport)
 "j" = (
-/obj/structure/chair,
+/obj/structure/chair/comfy/shuttle,
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/transport)
 "k" = (
@@ -55,8 +50,7 @@
 	id = "ferry";
 	name = "ferry shuttle";
 	port_direction = 2;
-	width = 5;
-	timid = 1
+	width = 5
 	},
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/transport)
@@ -65,7 +59,7 @@
 /turf/open/floor/mineral/titanium/blue,
 /area/shuttle/transport)
 "q" = (
-/obj/structure/chair{
+/obj/structure/chair/comfy/shuttle{
 	dir = 1
 	},
 /turf/open/floor/mineral/titanium/blue,
@@ -100,11 +94,11 @@ p
 c
 "}
 (5,1,1) = {"
-d
+e
 j
 l
 q
-d
+e
 "}
 (6,1,1) = {"
 c
@@ -150,8 +144,8 @@ c
 "}
 (12,1,1) = {"
 c
-d
+e
 m
-d
+e
 c
 "}

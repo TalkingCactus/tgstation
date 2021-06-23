@@ -13,29 +13,35 @@
 	icon_state = "mook"
 	icon_living = "mook"
 	icon_dead = "mook_dead"
+	mob_biotypes = MOB_ORGANIC|MOB_HUMANOID
 	pixel_x = -16
+	base_pixel_x = -16
+	pixel_y = -8
+	base_pixel_y = -8
 	maxHealth = 45
 	health = 45
 	melee_damage_lower = 30
 	melee_damage_upper = 30
-	pixel_y = -8
 	ranged = TRUE
 	ranged_cooldown_time = 10
-	pass_flags = LETPASSTHROW
+	pass_flags_self = LETPASSTHROW
 	robust_searching = TRUE
-	stat_attack = UNCONSCIOUS
+	stat_attack = HARD_CRIT
 	attack_sound = 'sound/weapons/rapierhit.ogg'
-	death_sound = 'sound/voice/mook_death.ogg'
+	attack_vis_effect = ATTACK_EFFECT_SLASH
+	deathsound = 'sound/voice/mook_death.ogg'
 	aggro_vision_range = 15 //A little more aggressive once in combat to balance out their really low HP
 	var/attack_state = MOOK_ATTACK_NEUTRAL
 	var/struck_target_leap = FALSE
 
-/mob/living/simple_animal/hostile/jungle/mook/CanPass(atom/movable/O)
+	footstep_type = FOOTSTEP_MOB_BAREFOOT
+
+/mob/living/simple_animal/hostile/jungle/mook/CanAllowThrough(atom/movable/O)
+	. = ..()
 	if(istype(O, /mob/living/simple_animal/hostile/jungle/mook))
 		var/mob/living/simple_animal/hostile/jungle/mook/M = O
 		if(M.attack_state == MOOK_ATTACK_ACTIVE && M.throwing)
 			return TRUE
-	return ..()
 
 /mob/living/simple_animal/hostile/jungle/mook/death()
 	desc = "A deceased primitive. Upon closer inspection, it was suffering from severe cellular degeneration and its garments are machine made..."//Can you guess the twist
@@ -89,26 +95,27 @@
 		melee_damage_lower = 15
 		melee_damage_upper = 15
 		var/mob_direction = get_dir(src,target)
+		var/atom/target_from = GET_TARGETS_FROM(src)
 		if(get_dist(src,target) > 1)
 			step(src,mob_direction)
-		if(targets_from && isturf(targets_from.loc) && target.Adjacent(targets_from) && isliving(target))
+		if(isturf(target_from.loc) && target.Adjacent(target_from) && isliving(target))
 			var/mob/living/L = target
 			L.attack_animal(src)
 			return
 		var/swing_turf = get_step(src,mob_direction)
 		new /obj/effect/temp_visual/kinetic_blast(swing_turf)
-		playsound(src, 'sound/weapons/slashmiss.ogg', 50, 1)
+		playsound(src, 'sound/weapons/slashmiss.ogg', 50, TRUE)
 
 /mob/living/simple_animal/hostile/jungle/mook/proc/LeapAttack()
 	if(target && !stat && attack_state == MOOK_ATTACK_WARMUP)
 		attack_state = MOOK_ATTACK_ACTIVE
-		density = FALSE
+		set_density(FALSE)
 		melee_damage_lower = 30
 		melee_damage_upper = 30
 		update_icons()
 		new /obj/effect/temp_visual/mook_dust(get_turf(src))
-		playsound(src, 'sound/weapons/thudswoosh.ogg', 25, 1)
-		playsound(src, 'sound/voice/mook_leap_yell.ogg', 100, 1)
+		playsound(src, 'sound/weapons/thudswoosh.ogg', 25, TRUE)
+		playsound(src, 'sound/voice/mook_leap_yell.ogg', 100, TRUE)
 		var/target_turf = get_turf(target)
 		throw_at(target_turf, 7, 1, src, FALSE, callback = CALLBACK(src, .proc/AttackRecovery))
 		return
@@ -118,7 +125,7 @@
 /mob/living/simple_animal/hostile/jungle/mook/proc/AttackRecovery()
 	if(attack_state == MOOK_ATTACK_ACTIVE && !stat)
 		attack_state = MOOK_ATTACK_RECOVERY
-		density = TRUE
+		set_density(TRUE)
 		face_atom(target)
 		if(!struck_target_leap)
 			update_icons()
@@ -144,14 +151,14 @@
 			update_icons()
 			Goto(target, move_to_delay, minimum_distance)
 
-/mob/living/simple_animal/hostile/jungle/mook/throw_impact(atom/hit_atom, throwingdatum)
+/mob/living/simple_animal/hostile/jungle/mook/throw_impact(atom/hit_atom, datum/thrownthing/throwingdatum)
 	. = ..()
 	if(isliving(hit_atom) && attack_state == MOOK_ATTACK_ACTIVE)
 		var/mob/living/L = hit_atom
 		if(CanAttack(L))
 			L.attack_animal(src)
 			struck_target_leap = TRUE
-			density = TRUE
+			set_density(TRUE)
 			update_icons()
 	var/mook_under_us = FALSE
 	for(var/A in get_turf(src))
@@ -164,7 +171,7 @@
 			if(!struck_target_leap && CanAttack(ML))//Check if some joker is attempting to use rest to evade us
 				struck_target_leap = TRUE
 				ML.attack_animal(src)
-				density = TRUE
+				set_density(TRUE)
 				struck_target_leap = TRUE
 				update_icons()
 				continue
@@ -214,7 +221,9 @@
 	icon_state = "mook_leap_cloud"
 	layer = BELOW_MOB_LAYER
 	pixel_x = -16
+	base_pixel_x = -16
 	pixel_y = -16
+	base_pixel_y = -16
 	duration = 10
 
 #undef MOOK_ATTACK_NEUTRAL

@@ -3,14 +3,14 @@
 	set category = "Object"
 
 	if((O.obj_flags & DANGEROUS_POSSESSION) && CONFIG_GET(flag/forbid_singulo_possession))
-		to_chat(usr, "[O] is too powerful for you to possess.")
+		to_chat(usr, "[O] is too powerful for you to possess.", confidential = TRUE)
 		return
 
 	var/turf/T = get_turf(O)
 
 	if(T)
-		log_admin("[key_name(usr)] has possessed [O] ([O.type]) at ([T.x], [T.y], [T.z])")
-		message_admins("[key_name(usr)] has possessed [O] ([O.type]) at ([T.x], [T.y], [T.z])")
+		log_admin("[key_name(usr)] has possessed [O] ([O.type]) at [AREACOORD(T)]")
+		message_admins("[key_name(usr)] has possessed [O] ([O.type]) at [AREACOORD(T)]")
 	else
 		log_admin("[key_name(usr)] has possessed [O] ([O.type]) at an unknown location")
 		message_admins("[key_name(usr)] has possessed [O] ([O.type]) at an unknown location")
@@ -18,7 +18,7 @@
 	if(!usr.control_object) //If you're not already possessing something...
 		usr.name_archive = usr.real_name
 
-	usr.loc = O
+	usr.forceMove(O)
 	usr.real_name = O.name
 	usr.name = O.name
 	usr.reset_perspective(O)
@@ -39,7 +39,7 @@
 			H.name = H.get_visible_name()
 
 
-	usr.loc = get_turf(usr.control_object)
+	usr.forceMove(get_turf(usr.control_object))
 	usr.reset_perspective()
 	usr.control_object = null
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Release Object") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
@@ -48,6 +48,6 @@
 	set desc = "Give this guy possess/release verbs"
 	set category = "Debug"
 	set name = "Give Possessing Verbs"
-	M.verbs += /proc/possess
-	M.verbs += /proc/release
+	add_verb(M, /proc/possess)
+	add_verb(M, /proc/release)
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Give Possessing Verbs") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!

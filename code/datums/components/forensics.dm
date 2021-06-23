@@ -1,11 +1,12 @@
 /datum/component/forensics
 	dupe_mode = COMPONENT_DUPE_UNIQUE
-	var/list/fingerprints		//assoc print = print
-	var/list/hiddenprints		//assoc ckey = realname/gloves/ckey
-	var/list/blood_DNA			//assoc dna = bloodtype
-	var/list/fibers				//assoc print = print
+	can_transfer = TRUE
+	var/list/fingerprints //assoc print = print
+	var/list/hiddenprints //assoc ckey = realname/gloves/ckey
+	var/list/blood_DNA //assoc dna = bloodtype
+	var/list/fibers //assoc print = print
 
-/datum/component/forensics/InheritComponent(datum/component/forensics/F, original)		//Use of | and |= being different here is INTENTIONAL.
+/datum/component/forensics/InheritComponent(datum/component/forensics/F, original) //Use of | and |= being different here is INTENTIONAL.
 	fingerprints = fingerprints | F.fingerprints
 	hiddenprints = hiddenprints | F.hiddenprints
 	blood_DNA = blood_DNA | F.blood_DNA
@@ -15,51 +16,70 @@
 
 /datum/component/forensics/Initialize(new_fingerprints, new_hiddenprints, new_blood_DNA, new_fibers)
 	if(!isatom(parent))
-		. = COMPONENT_INCOMPATIBLE
-		CRASH("Forensics datum applied incorrectly to non-atom of type [parent.type]!")
+		return COMPONENT_INCOMPATIBLE
 	fingerprints = new_fingerprints
 	hiddenprints = new_hiddenprints
 	blood_DNA = new_blood_DNA
 	fibers = new_fibers
 	check_blood()
-	RegisterSignal(COMSIG_COMPONENT_CLEAN_ACT, .proc/clean_act)
+
+/datum/component/forensics/RegisterWithParent()
+	check_blood()
+	RegisterSignal(parent, COMSIG_COMPONENT_CLEAN_ACT, .proc/clean_act)
+
+/datum/component/forensics/UnregisterFromParent()
+	UnregisterSignal(parent, list(COMSIG_COMPONENT_CLEAN_ACT))
+
+/datum/component/forensics/PostTransfer()
+	if(!isatom(parent))
+		return COMPONENT_INCOMPATIBLE
 
 /datum/component/forensics/proc/wipe_fingerprints()
 	fingerprints = null
 	return TRUE
 
 /datum/component/forensics/proc/wipe_hiddenprints()
-	return	//no.
+	return //no.
 
 /datum/component/forensics/proc/wipe_blood_DNA()
 	blood_DNA = null
-	if(isitem(parent))
-		qdel(parent.GetComponent(/datum/component/decal/blood))
 	return TRUE
 
 /datum/component/forensics/proc/wipe_fibers()
 	fibers = null
 	return TRUE
 
-/datum/component/forensics/proc/clean_act(strength)
-	if(strength >= CLEAN_STRENGTH_FINGERPRINTS)
-		wipe_fingerprints()
-	if(strength >= CLEAN_STRENGTH_BLOOD)
-		wipe_blood_DNA()
-	if(strength >= CLEAN_STRENGTH_FIBERS)
-		wipe_fibers()
+/datum/component/forensics/proc/clean_act(datum/source, clean_types)
+	SIGNAL_HANDLER
 
-/datum/component/forensics/proc/add_fingerprint_list(list/_fingerprints)	//list(text)
+	. = NONE
+	if(clean_types & CLEAN_TYPE_FINGERPRINTS)
+		wipe_fingerprints()
+		. = COMPONENT_CLEANED
+	if(clean_types & CLEAN_TYPE_BLOOD)
+		wipe_blood_DNA()
+		. = COMPONENT_CLEANED
+	if(clean_types & CLEAN_TYPE_FIBERS)
+		wipe_fibers()
+		. = COMPONENT_CLEANED
+
+/datum/component/forensics/proc/add_fingerprint_list(list/_fingerprints) //list(text)
 	if(!length(_fingerprints))
 		return
 	LAZYINITLIST(fingerprints)
-	for(var/i in _fingerprints)	//We use an associative list, make sure we don't just merge a non-associative list into ours.
+	for(var/i in _fingerprints) //We use an associative list, make sure we don't just merge a non-associative list into ours.
 		fingerprints[i] = i
 	return TRUE
 
 /datum/component/forensics/proc/add_fingerprint(mob/living/M, ignoregloves = FALSE)
-	if(!M)
-		return
+	if(!isliving(M))
+		if(!iscameramob(M))
+			return
+		if(isaicamera(M))
+			var/mob/camera/ai_eye/ai_camera = M
+			if(!ai_camera.ai)
+				return
+			M = ai_camera.ai
 	add_hiddenprint(M)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
@@ -71,15 +91,15 @@
 			if(!ignoregloves)
 				H.gloves.add_fingerprint(H, TRUE) //ignoregloves = 1 to avoid infinite loop.
 				return
-		var/full_print = md5(H.dna.uni_identity)
+		var/full_print = md5(H.dna.unique_identity)
 		LAZYSET(fingerprints, full_print, full_print)
 	return TRUE
 
-/datum/component/forensics/proc/add_fiber_list(list/_fibertext)		//list(text)
+/datum/component/forensics/proc/add_fiber_list(list/_fibertext) //list(text)
 	if(!length(_fibertext))
 		return
 	LAZYINITLIST(fibers)
-	for(var/i in _fibertext)	//We use an associative list, make sure we don't just merge a non-associative list into ours.
+	for(var/i in _fibertext) //We use an associative list, make sure we don't just merge a non-associative list into ours.
 		fibers[i] = i
 	return TRUE
 
@@ -115,16 +135,24 @@
 			LAZYSET(fibers, fibertext, fibertext)
 	return TRUE
 
-/datum/component/forensics/proc/add_hiddenprint_list(list/_hiddenprints)	//list(ckey = text)
+/datum/component/forensics/proc/add_hiddenprint_list(list/_hiddenprints) //list(ckey = text)
 	if(!length(_hiddenprints))
 		return
 	LAZYINITLIST(hiddenprints)
-	for(var/i in _hiddenprints)	//We use an associative list, make sure we don't just merge a non-associative list into ours.
+	for(var/i in _hiddenprints) //We use an associative list, make sure we don't just merge a non-associative list into ours.
 		hiddenprints[i] = _hiddenprints[i]
 	return TRUE
 
-/datum/component/forensics/proc/add_hiddenprint(mob/living/M)
-	if(!M || !M.key)
+/datum/component/forensics/proc/add_hiddenprint(mob/M)
+	if(!isliving(M))
+		if(!iscameramob(M))
+			return
+		if(isaicamera(M))
+			var/mob/camera/ai_eye/ai_camera = M
+			if(!ai_camera.ai)
+				return
+			M = ai_camera.ai
+	if(!M.key)
 		return
 	var/hasgloves = ""
 	if(ishuman(M))
@@ -133,17 +161,17 @@
 			hasgloves = "(gloves)"
 	var/current_time = time_stamp()
 	if(!LAZYACCESS(hiddenprints, M.key))
-		LAZYSET(hiddenprints, M.key, "First: [M.real_name]\[[current_time]\][hasgloves]. Ckey: [M.ckey]")
+		LAZYSET(hiddenprints, M.key, "First: \[[current_time]\] \"[M.real_name]\"[hasgloves]. Ckey: [M.ckey]")
 	else
-		var/laststamppos = findtext(LAZYACCESS(hiddenprints, M.key), " Last: ")
+		var/laststamppos = findtext(LAZYACCESS(hiddenprints, M.key), "\nLast: ")
 		if(laststamppos)
 			LAZYSET(hiddenprints, M.key, copytext(hiddenprints[M.key], 1, laststamppos))
-		hiddenprints[M.key] += " Last: [M.real_name]\[[current_time]\][hasgloves]. Ckey: [M.ckey]"	//made sure to be existing by if(!LAZYACCESS);else
+		hiddenprints[M.key] += "\nLast: \[[current_time]\] \"[M.real_name]\"[hasgloves]. Ckey: [M.ckey]" //made sure to be existing by if(!LAZYACCESS);else
 	var/atom/A = parent
 	A.fingerprintslast = M.ckey
 	return TRUE
 
-/datum/component/forensics/proc/add_blood_DNA(list/dna)		//list(dna_enzymes = type)
+/datum/component/forensics/proc/add_blood_DNA(list/dna) //list(dna_enzymes = type)
 	if(!length(dna))
 		return
 	LAZYINITLIST(blood_DNA)
@@ -157,4 +185,4 @@
 		return
 	if(!length(blood_DNA))
 		return
-	parent.LoadComponent(/datum/component/decal/blood)
+	parent.AddElement(/datum/element/decal/blood)

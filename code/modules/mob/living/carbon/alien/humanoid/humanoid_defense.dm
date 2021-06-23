@@ -1,68 +1,54 @@
 
-/mob/living/carbon/alien/humanoid/grabbedby(mob/living/carbon/user, supress_message = 0)
-	if(user == src && pulling && grab_state >= GRAB_AGGRESSIVE && !pulling.anchored && iscarbon(pulling))
-		devour_mob(pulling, devour_time = 60)
+
+/mob/living/carbon/alien/humanoid/attack_hulk(mob/living/carbon/human/user)
+	. = ..()
+	if(!.)
+		return
+	adjustBruteLoss(15)
+	var/hitverb = "hit"
+	if(mob_size < MOB_SIZE_LARGE)
+		safe_throw_at(get_edge_target_turf(src, get_dir(user, src)), 2, 1, user)
+		hitverb = "slam"
+	playsound(loc, "punch", 25, TRUE, -1)
+	visible_message(span_danger("[user] [hitverb]s [src]!"), \
+					span_userdanger("[user] [hitverb]s you!"), span_hear("You hear a sickening sound of flesh hitting flesh!"), COMBAT_MESSAGE_RANGE, user)
+	to_chat(user, span_danger("You [hitverb] [src]!"))
+
+/mob/living/carbon/alien/humanoid/attack_hand(mob/living/carbon/human/user, list/modifiers)
+	if(!..() || !user.combat_mode)
+		return
+	if(LAZYACCESS(modifiers, RIGHT_CLICK))
+		if (body_position == STANDING_UP)
+			if (prob(5))
+				Unconscious(40)
+				playsound(loc, 'sound/weapons/thudswoosh.ogg', 50, TRUE, -1)
+				log_combat(user, src, "pushed")
+				visible_message(span_danger("[user] pushes [src] down!"), \
+								span_userdanger("[user] pushes you down!"), span_hear("You hear aggressive shuffling followed by a loud thud!"), null, user)
+				to_chat(user, span_danger("You push [src] down!"))
+		return TRUE
+	var/damage = rand(1, 9)
+	if (prob(90))
+		playsound(loc, "punch", 25, TRUE, -1)
+		visible_message(span_danger("[user] punches [src]!"), \
+						span_userdanger("[user] punches you!"), span_hear("You hear a sickening sound of flesh hitting flesh!"), COMBAT_MESSAGE_RANGE, user)
+		to_chat(user, span_danger("You punch [src]!"))
+		if ((stat != DEAD) && (damage > 9 || prob(5)))//Regular humans have a very small chance of knocking an alien down.
+			Unconscious(40)
+			visible_message(span_danger("[user] knocks [src] down!"), \
+							span_userdanger("[user] knocks you down!"), span_hear("You hear a sickening sound of flesh hitting flesh!"), null, user)
+			to_chat(user, span_danger("You knock [src] down!"))
+		var/obj/item/bodypart/affecting = get_bodypart(ran_zone(user.zone_selected))
+		apply_damage(damage, BRUTE, affecting)
+		log_combat(user, src, "attacked")
 	else
-		..()
-
-/mob/living/carbon/alien/humanoid/attack_hulk(mob/living/carbon/human/user, does_attack_animation = 0)
-	if(user.a_intent == INTENT_HARM)
-		..(user, 1)
-		adjustBruteLoss(15)
-		var/hitverb = "punched"
-		if(mob_size < MOB_SIZE_LARGE)
-			step_away(src,user,15)
-			sleep(1)
-			step_away(src,user,15)
-			hitverb = "slammed"
-		playsound(loc, "punch", 25, 1, -1)
-		visible_message("<span class='danger'>[user] has [hitverb] [src]!</span>", \
-		"<span class='userdanger'>[user] has [hitverb] [src]!</span>", null, COMBAT_MESSAGE_RANGE)
-		return 1
-
-/mob/living/carbon/alien/humanoid/attack_hand(mob/living/carbon/human/M)
-	if(..())
-		switch(M.a_intent)
-			if ("harm")
-				var/damage = rand(1, 9)
-				if (prob(90))
-					playsound(loc, "punch", 25, 1, -1)
-					visible_message("<span class='danger'>[M] has punched [src]!</span>", \
-							"<span class='userdanger'>[M] has punched [src]!</span>", null, COMBAT_MESSAGE_RANGE)
-					if ((stat != DEAD) && (damage > 9 || prob(5)))//Regular humans have a very small chance of knocking an alien down.
-						Unconscious(40)
-						visible_message("<span class='danger'>[M] has knocked [src] down!</span>", \
-								"<span class='userdanger'>[M] has knocked [src] down!</span>")
-					var/obj/item/bodypart/affecting = get_bodypart(ran_zone(M.zone_selected))
-					apply_damage(damage, BRUTE, affecting)
-					add_logs(M, src, "attacked")
-				else
-					playsound(loc, 'sound/weapons/punchmiss.ogg', 25, 1, -1)
-					visible_message("<span class='userdanger'>[M] has attempted to punch [src]!</span>", \
-						"<span class='userdanger'>[M] has attempted to punch [src]!</span>", null, COMBAT_MESSAGE_RANGE)
-
-			if ("disarm")
-				if (!lying)
-					if (prob(5))
-						Unconscious(40)
-						playsound(loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
-						add_logs(M, src, "pushed")
-						visible_message("<span class='danger'>[M] has pushed down [src]!</span>", \
-							"<span class='userdanger'>[M] has pushed down [src]!</span>")
-					else
-						if (prob(50))
-							dropItemToGround(get_active_held_item())
-							playsound(loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
-							visible_message("<span class='danger'>[M] has disarmed [src]!</span>", \
-							"<span class='userdanger'>[M] has disarmed [src]!</span>", null, COMBAT_MESSAGE_RANGE)
-						else
-							playsound(loc, 'sound/weapons/punchmiss.ogg', 25, 1, -1)
-							visible_message("<span class='userdanger'>[M] has attempted to disarm [src]!</span>",\
-								"<span class='userdanger'>[M] has attempted to disarm [src]!</span>", null, COMBAT_MESSAGE_RANGE)
+		playsound(loc, 'sound/weapons/punchmiss.ogg', 25, TRUE, -1)
+		visible_message(span_danger("[user]'s punch misses [src]!"), \
+						span_danger("You avoid [user]'s punch!"), span_hear("You hear a swoosh!"), COMBAT_MESSAGE_RANGE, user)
+		to_chat(user, span_warning("Your punch misses [src]!"))
 
 
-
-/mob/living/carbon/alien/humanoid/do_attack_animation(atom/A, visual_effect_icon, obj/item/used_item, no_effect, end_pixel_y)
+/mob/living/carbon/alien/humanoid/do_attack_animation(atom/A, visual_effect_icon, obj/item/used_item, no_effect)
 	if(!no_effect && !visual_effect_icon)
 		visual_effect_icon = ATTACK_EFFECT_CLAW
 	..()

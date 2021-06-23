@@ -6,10 +6,24 @@
 #define RETURN_PRECISE_POSITION(A) new /datum/position(A)
 #define RETURN_PRECISE_POINT(A) new /datum/point(A)
 
-#define RETURN_POINT_VECTOR(ATOM, ANGLE, SPEED) {new /datum/point/vector(ATOM, null, null, null, null, ANGLE, SPEED)}
-#define RETURN_POINT_VECTOR_INCREMENT(ATOM, ANGLE, SPEED, AMT) {new /datum/point/vector(ATOM, null, null, null, null, ANGLE, SPEED, AMT)}
+#define RETURN_POINT_VECTOR(ATOM, ANGLE, SPEED) (new /datum/point/vector(ATOM, null, null, null, null, ANGLE, SPEED))
+#define RETURN_POINT_VECTOR_INCREMENT(ATOM, ANGLE, SPEED, AMT) (new /datum/point/vector(ATOM, null, null, null, null, ANGLE, SPEED, AMT))
 
-/datum/position			//For positions with map x/y/z and pixel x/y so you don't have to return lists. Could use addition/subtraction in the future I guess.
+/proc/point_midpoint_points(datum/point/a, datum/point/b) //Obviously will not support multiZ calculations! Same for the two below.
+	var/datum/point/P = new
+	P.x = a.x + (b.x - a.x) * 0.5
+	P.y = a.y + (b.y - a.y) * 0.5
+	P.z = a.z
+	return P
+
+/proc/pixel_length_between_points(datum/point/a, datum/point/b)
+	return sqrt(((b.x - a.x) ** 2) + ((b.y - a.y) ** 2))
+
+/proc/angle_between_points(datum/point/a, datum/point/b)
+	return ATAN2((b.y - a.y), (b.x - a.x))
+
+/// For positions with map x/y/z and pixel x/y so you don't have to return lists. Could use addition/subtraction in the future I guess.
+/datum/position	
 	var/x = 0
 	var/y = 0
 	var/z = 0
@@ -19,7 +33,7 @@
 /datum/position/proc/valid()
 	return x && y && z && !isnull(pixel_x) && !isnull(pixel_y)
 
-/datum/position/New(_x = 0, _y = 0, _z = 0, _pixel_x = 0, _pixel_y = 0)	//first argument can also be a /datum/point.
+/datum/position/New(_x = 0, _y = 0, _z = 0, _pixel_x = 0, _pixel_y = 0) //first argument can also be a /datum/point.
 	if(istype(_x, /datum/point))
 		var/datum/point/P = _x
 		var/turf/T = P.return_turf()
@@ -53,20 +67,8 @@
 /datum/position/proc/return_point()
 	return new /datum/point(src)
 
-/proc/point_midpoint_points(datum/point/a, datum/point/b)	//Obviously will not support multiZ calculations! Same for the two below.
-	var/datum/point/P = new
-	P.x = a.x + (b.x - a.x) / 2
-	P.y = a.y + (b.y - a.y) / 2
-	P.z = a.z
-	return P
-
-/proc/pixel_length_between_points(datum/point/a, datum/point/b)
-	return sqrt(((b.x - a.x) ** 2) + ((b.y - a.y) ** 2))
-
-/proc/angle_between_points(datum/point/a, datum/point/b)
-	return ATAN2((b.y - a.y), (b.x - a.x))
-
-/datum/point		//A precise point on the map in absolute pixel locations based on world.icon_size. Pixels are FROM THE EDGE OF THE MAP!
+/// A precise point on the map in absolute pixel locations based on world.icon_size. Pixels are FROM THE EDGE OF THE MAP!
+/datum/point		
 	var/x = 0
 	var/y = 0
 	var/z = 0
@@ -80,7 +82,8 @@
 	p.z = z
 	return p
 
-/datum/point/New(_x, _y, _z, _pixel_x = 0, _pixel_y = 0)	//first argument can also be a /datum/position or /atom.
+/// First argument can also be a /datum/position or /atom.
+/datum/point/New(_x, _y, _z, _pixel_x = 0, _pixel_y = 0)	
 	if(istype(_x, /datum/position))
 		var/datum/position/P = _x
 		_x = P.x
@@ -99,9 +102,9 @@
 
 /datum/point/proc/initialize_location(tile_x, tile_y, tile_z, p_x = 0, p_y = 0)
 	if(!isnull(tile_x))
-		x = ((tile_x - 1) * world.icon_size) + world.icon_size / 2 + p_x + 1
+		x = ((tile_x - 1) * world.icon_size) + world.icon_size * 0.5 + p_x + 1
 	if(!isnull(tile_y))
-		y = ((tile_y - 1) * world.icon_size) + world.icon_size / 2 + p_y + 1
+		y = ((tile_y - 1) * world.icon_size) + world.icon_size * 0.5 + p_y + 1
 	if(!isnull(tile_z))
 		z = tile_z
 
@@ -117,7 +120,7 @@
 /datum/point/proc/return_turf()
 	return locate(CEILING(x / world.icon_size, 1), CEILING(y / world.icon_size, 1), z)
 
-/datum/point/proc/return_coordinates()		//[turf_x, turf_y, z]
+/datum/point/proc/return_coordinates() //[turf_x, turf_y, z]
 	return list(CEILING(x / world.icon_size, 1), CEILING(y / world.icon_size, 1), z)
 
 /datum/point/proc/return_position()
@@ -129,41 +132,16 @@
 /datum/point/proc/return_py()
 	return MODULUS(y, world.icon_size) - 16 - 1
 
-/datum/point/proc/mapcheck()
-	. = FALSE
-	var/maxx = world.icon_size * world.maxx
-	var/maxy = world.icon_size * world.maxy
-	var/move_zx = 0
-	var/move_zy = 0
-	if(x < 0)
-		x += maxx
-		move_zx -= 1
-	if(y < 0)
-		y += maxy
-		move_zy -= 1
-	if(x > maxx)
-		x -= maxx
-		move_zx += 1
-	if(y > maxy)
-		y -= maxy
-		move_zy += 1
-	var/datum/space_level/S = SSmapping.get_level(z)
-	if(move_zx != 0)
-		var/datum/space_level/L = S.neigbours["[move_zx < 0? WEST : EAST]"]
-		z = L.z_value
-		. = TRUE
-	if(move_zy != 0)
-		var/datum/space_level/L = S.neigbours["[move_zy < 0? SOUTH : NORTH]"]
-		z = L.z_value
-		. = TRUE
-
 /datum/point/vector
-	var/speed = 32				//pixels per iteration
+	/// Pixels per iteration
+	var/speed = 32				
 	var/iteration = 0
 	var/angle = 0
-	var/mpx = 0					//calculated x/y movement amounts to prevent having to do trig every step.
+	/// Calculated x movement amounts to prevent having to do trig every step.
+	var/mpx = 0					
+	/// Calculated y movement amounts to prevent having to do trig every step.
 	var/mpy = 0
-	var/starting_x = 0			//just like before, pixels from EDGE of map! This is set in initialize_location().
+	var/starting_x = 0 //just like before, pixels from EDGE of map! This is set in initialize_location().
 	var/starting_y = 0
 	var/starting_z = 0
 
@@ -178,6 +156,15 @@
 	starting_x = x
 	starting_y = y
 	starting_z = z
+
+/// Same effect as initiliaze_location, but without setting the starting_x/y/z
+/datum/point/vector/proc/set_location(tile_x, tile_y, tile_z, p_x = 0, p_y = 0) 
+	if(!isnull(tile_x))
+		x = ((tile_x - 1) * world.icon_size) + world.icon_size * 0.5 + p_x + 1
+	if(!isnull(tile_y))
+		y = ((tile_y - 1) * world.icon_size) + world.icon_size * 0.5 + p_y + 1
+	if(!isnull(tile_z))
+		z = tile_z
 
 /datum/point/vector/copy_to(datum/point/vector/v = new)
 	..(v)
@@ -196,7 +183,8 @@
 		speed = pixel_speed
 	set_angle(new_angle)
 
-/datum/point/vector/proc/set_angle(new_angle)		//calculations use "byond angle" where north is 0 instead of 90, and south is 180 instead of 270.
+/// Calculations use "byond angle" where north is 0 instead of 90, and south is 180 instead of 270.
+/datum/point/vector/proc/set_angle(new_angle)
 	if(isnull(angle))
 		return
 	angle = new_angle
@@ -214,10 +202,8 @@
 
 /datum/point/vector/proc/increment(multiplier = 1)
 	iteration++
-	x += mpx * 1
-	y += mpy * 1
-	if(mapcheck())
-		on_z_change()
+	x += mpx * (multiplier)
+	y += mpy * (multiplier)
 
 /datum/point/vector/proc/return_vector_after_increments(amount = 7, multiplier = 1, force_simulate = FALSE)
 	var/datum/point/vector/v = copy_to()
@@ -231,13 +217,14 @@
 /datum/point/vector/proc/on_z_change()
 	return
 
-/datum/point/vector/processed		//pixel_speed is per decisecond.
+/datum/point/vector/processed //pixel_speed is per decisecond.
 	var/last_process = 0
 	var/last_move = 0
 	var/paused = FALSE
 
 /datum/point/vector/processed/Destroy()
 	STOP_PROCESSING(SSprojectiles, src)
+	return ..()
 
 /datum/point/vector/processed/proc/start()
 	last_process = world.time

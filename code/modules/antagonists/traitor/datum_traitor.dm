@@ -1,352 +1,287 @@
+/// Chance that the traitor could roll hijack if the pop limit is met.
+#define HIJACK_PROB 10
+/// Hijack is unavailable as a random objective below this player count.
+#define HIJACK_MIN_PLAYERS 30
+
+/// Chance the traitor gets a martyr objective instead of having to escape alive, as long as all the objectives are martyr compatible.
+#define MARTYR_PROB 20
+
+/// Chance the traitor gets a kill objective. If this prob fails, they will get a steal objective instead.
+#define KILL_PROB 50
+/// If a kill objective is rolled, chance that it is to destroy the AI.
+#define DESTROY_AI_PROB(denominator) (100 / denominator)
+/// If the destroy AI objective doesn't roll, chance that we'll get a maroon instead. If this prob fails, they will get a generic assassinate objective instead.
+#define MAROON_PROB 30
+/// If it's a steal objective, this is the chance that it'll be a download research notes objective. Science staff can't get this objective. It can only roll once. If any of these fail, they will get a generic steal objective instead.
+#define DOWNLOAD_PROB 15
+
 /datum/antagonist/traitor
 	name = "Traitor"
 	roundend_category = "traitors"
 	antagpanel_category = "Traitor"
 	job_rank = ROLE_TRAITOR
-	var/should_specialise = TRUE //do we split into AI and human, set to true on inital assignment only
-	var/ai_datum = /datum/antagonist/traitor/AI
-	var/human_datum = /datum/antagonist/traitor/human
-	var/special_role = "traitor"
+	antag_moodlet = /datum/mood_event/focused
+	antag_hud_type = ANTAG_HUD_TRAITOR
+	antag_hud_name = "traitor"
+	hijack_speed = 0.5 //10 seconds per hijack stage by default
 	var/employer = "The Syndicate"
 	var/give_objectives = TRUE
 	var/should_give_codewords = TRUE
-
-	
-
-/datum/antagonist/traitor/human
-	show_in_antagpanel = FALSE
-	should_specialise = FALSE
 	var/should_equip = TRUE
 
-
-/datum/antagonist/traitor/AI
-	show_in_antagpanel = FALSE
-	should_specialise = FALSE
-
-/datum/antagonist/traitor/specialization(datum/mind/new_owner)
-	if(should_specialise)
-		if(new_owner.current && isAI(new_owner.current))
-			return new ai_datum()
-		else
-			return new human_datum()
-	else
-		return ..()
+	var/datum/contractor_hub/contractor_hub
 
 /datum/antagonist/traitor/on_gain()
-	SSticker.mode.traitors += owner
-	owner.special_role = special_role
+	owner.special_role = job_rank
 	if(give_objectives)
 		forge_traitor_objectives()
-	finalize_traitor()
-	..()
 
-/datum/antagonist/traitor/apply_innate_effects()
-	if(owner.assigned_role == "Clown")
-		var/mob/living/carbon/human/traitor_mob = owner.current
-		if(traitor_mob && istype(traitor_mob))
-			if(!silent)
-				to_chat(traitor_mob, "Your training has allowed you to overcome your clownish nature, allowing you to wield weapons without harming yourself.")
-			traitor_mob.dna.remove_mutation(CLOWNMUT)
+	equip()
 
-/datum/antagonist/traitor/remove_innate_effects()
-	if(owner.assigned_role == "Clown")
-		var/mob/living/carbon/human/traitor_mob = owner.current
-		if(traitor_mob && istype(traitor_mob))
-			traitor_mob.dna.add_mutation(CLOWNMUT)
+	owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/tatoralert.ogg', 100, FALSE, pressure_affected = FALSE, use_reverb = FALSE)
+
+	return ..()
 
 /datum/antagonist/traitor/on_removal()
-	SSticker.mode.traitors -= owner
-	for(var/O in objectives)
-		owner.objectives -= O
-	objectives = list()
 	if(!silent && owner.current)
-		to_chat(owner.current,"<span class='userdanger'> You are no longer the [special_role]! </span>")
+		to_chat(owner.current,span_userdanger("You are no longer the [job_rank]!"))
+
 	owner.special_role = null
-	..()
 
-/datum/antagonist/traitor/AI/on_removal()
-	if(owner.current && isAI(owner.current))
-		var/mob/living/silicon/ai/A = owner.current
-		A.set_zeroth_law("")
-		A.verbs -= /mob/living/silicon/ai/proc/choose_modules
-		A.malf_picker.remove_malf_verbs(A)
-		qdel(A.malf_picker)
-	..()
+	return ..()
 
-/datum/antagonist/traitor/proc/add_objective(var/datum/objective/O)
-	owner.objectives += O
-	objectives += O
+/// Simple helper proc that handles equipping the traitor if necessary.
+/datum/antagonist/traitor/proc/equip()
+	if(should_equip)
+		owner.equip_traitor(employer, silent, src)
 
-/datum/antagonist/traitor/proc/remove_objective(var/datum/objective/O)
-	owner.objectives -= O
-	objectives -= O
-
+/// Generates a complete set of traitor objectives up to the traitor objective limit, including non-generic objectives such as martyr and hijack.
 /datum/antagonist/traitor/proc/forge_traitor_objectives()
-	return
+	objectives.Cut()
 
-/datum/antagonist/traitor/human/forge_traitor_objectives()
 	var/is_hijacker = FALSE
-	if (GLOB.joined_player_list.len >= 30) // Less murderboning on lowpop thanks
-		is_hijacker = prob(10)
-	var/martyr_chance = prob(20)
-	var/objective_count = is_hijacker 			//Hijacking counts towards number of objectives
-	if(!SSticker.mode.exchange_blue && SSticker.mode.traitors.len >= 8) 	//Set up an exchange if there are enough traitors
-		if(!SSticker.mode.exchange_red)
-			SSticker.mode.exchange_red = owner
-		else
-			SSticker.mode.exchange_blue = owner
-			assign_exchange_role(SSticker.mode.exchange_red)
-			assign_exchange_role(SSticker.mode.exchange_blue)
-		objective_count += 1					//Exchange counts towards number of objectives
-	var/toa = CONFIG_GET(number/traitor_objectives_amount)
-	for(var/i = objective_count, i < toa, i++)
-		forge_single_objective()
-
-	if(is_hijacker && objective_count <= toa) //Don't assign hijack if it would exceed the number of objectives set in config.traitor_objectives_amount
-		if (!(locate(/datum/objective/hijack) in owner.objectives))
-			var/datum/objective/hijack/hijack_objective = new
-			hijack_objective.owner = owner
-			add_objective(hijack_objective)
-			return
-
-
-	var/martyr_compatibility = 1 //You can't succeed in stealing if you're dead.
-	for(var/datum/objective/O in owner.objectives)
-		if(!O.martyr_compatible)
-			martyr_compatibility = 0
-			break
-
-	if(martyr_compatibility && martyr_chance)
-		var/datum/objective/martyr/martyr_objective = new
-		martyr_objective.owner = owner
-		add_objective(martyr_objective)
-		return
-
-	else
-		if(!(locate(/datum/objective/escape) in owner.objectives))
-			var/datum/objective/escape/escape_objective = new
-			escape_objective.owner = owner
-			add_objective(escape_objective)
-			return
-
-/datum/antagonist/traitor/AI/forge_traitor_objectives()
 	var/objective_count = 0
 
-	if(prob(30))
-		objective_count += forge_single_objective()
+	if ((GLOB.joined_player_list.len >= HIJACK_MIN_PLAYERS) && prob(HIJACK_PROB))
+		is_hijacker = TRUE
+		objective_count++
 
-	for(var/i = objective_count, i < CONFIG_GET(number/traitor_objectives_amount), i++)
-		var/datum/objective/assassinate/kill_objective = new
-		kill_objective.owner = owner
-		kill_objective.find_target()
-		add_objective(kill_objective)
+	var/objective_limit = CONFIG_GET(number/traitor_objectives_amount)
 
-	var/datum/objective/survive/exist/exist_objective = new
-	exist_objective.owner = owner
-	add_objective(exist_objective)
-/datum/antagonist/traitor/proc/forge_single_objective()
-	return 0
-/datum/antagonist/traitor/human/forge_single_objective() //Returns how many objectives are added
-	.=1
-	if(prob(50))
+	// for(in...to) loops iterate inclusively, so to reach objective_limit we need to loop to objective_limit - 1
+	// This does not give them 1 fewer objectives than intended.
+	for(var/i in objective_count to objective_limit - 1)
+		forge_single_generic_objective()
+
+	if(is_hijacker)
+		var/datum/objective/hijack/hijack_objective = new
+		hijack_objective.owner = owner
+		objectives += hijack_objective
+		return
+
+	forge_escape_objective()
+
+/// Forges a single escape objective and adds it to this datum's objective list.
+/datum/antagonist/traitor/proc/forge_escape_objective()
+	var/is_martyr = prob(MARTYR_PROB)
+	var/martyr_compatibility = TRUE
+
+	for(var/datum/objective/traitor_objective in objectives)
+		if(!traitor_objective.martyr_compatible)
+			martyr_compatibility = FALSE
+			break
+
+	if(martyr_compatibility && is_martyr)
+		var/datum/objective/martyr/martyr_objective = new
+		martyr_objective.owner = owner
+		objectives += martyr_objective
+		return
+
+	var/datum/objective/escape/escape_objective = new
+	escape_objective.owner = owner
+	objectives += escape_objective
+
+/// Adds a generic kill or steal objective to this datum's objective list.
+/datum/antagonist/traitor/proc/forge_single_generic_objective()
+	if(prob(KILL_PROB))
 		var/list/active_ais = active_ais()
-		if(active_ais.len && prob(100/GLOB.joined_player_list.len))
+		if(active_ais.len && prob(DESTROY_AI_PROB(GLOB.joined_player_list.len)))
 			var/datum/objective/destroy/destroy_objective = new
 			destroy_objective.owner = owner
 			destroy_objective.find_target()
-			add_objective(destroy_objective)
-		else if(prob(30))
+			objectives += destroy_objective
+			return
+
+		if(prob(MAROON_PROB))
 			var/datum/objective/maroon/maroon_objective = new
 			maroon_objective.owner = owner
 			maroon_objective.find_target()
-			add_objective(maroon_objective)
-		else
-			var/datum/objective/assassinate/kill_objective = new
-			kill_objective.owner = owner
-			kill_objective.find_target()
-			add_objective(kill_objective)
-	else
-		if(prob(15) && !(locate(/datum/objective/download in owner.objectives)))
-			var/datum/objective/download/download_objective = new
-			download_objective.owner = owner
-			download_objective.gen_amount_goal()
-			add_objective(download_objective)
-		else
-			var/datum/objective/steal/steal_objective = new
-			steal_objective.owner = owner
-			steal_objective.find_target()
-			add_objective(steal_objective)
+			objectives += maroon_objective
+			return
 
-/datum/antagonist/traitor/AI/forge_single_objective()
-	.=1
-	var/special_pick = rand(1,4)
-	switch(special_pick)
-		if(1)
-			var/datum/objective/block/block_objective = new
-			block_objective.owner = owner
-			add_objective(block_objective)
-		if(2)
-			var/datum/objective/purge/purge_objective = new
-			purge_objective.owner = owner
-			add_objective(purge_objective)
-		if(3)
-			var/datum/objective/robot_army/robot_objective = new
-			robot_objective.owner = owner
-			add_objective(robot_objective)
-		if(4) //Protect and strand a target
-			var/datum/objective/protect/yandere_one = new
-			yandere_one.owner = owner
-			add_objective(yandere_one)
-			yandere_one.find_target()
-			var/datum/objective/maroon/yandere_two = new
-			yandere_two.owner = owner
-			yandere_two.target = yandere_one.target
-			yandere_two.update_explanation_text() // normally called in find_target()
-			add_objective(yandere_two)
-			.=2
+		var/datum/objective/assassinate/kill_objective = new
+		kill_objective.owner = owner
+		kill_objective.find_target()
+		objectives += kill_objective
+		return
+
+	if(prob(DOWNLOAD_PROB) && !(locate(/datum/objective/download) in objectives) && !(owner.assigned_role in list("Research Director", "Scientist", "Roboticist", "Geneticist")))
+		var/datum/objective/download/download_objective = new
+		download_objective.owner = owner
+		download_objective.gen_amount_goal()
+		objectives += download_objective
+		return
+
+	var/datum/objective/steal/steal_objective = new
+	steal_objective.owner = owner
+	steal_objective.find_target()
+	objectives += steal_objective
 
 /datum/antagonist/traitor/greet()
-	to_chat(owner.current, "<B><font size=3 color=red>You are the [owner.special_role].</font></B>")
+	to_chat(owner.current, span_alertsyndie("You are the [owner.special_role]."))
 	owner.announce_objectives()
 	if(should_give_codewords)
 		give_codewords()
 
-/datum/antagonist/traitor/proc/finalize_traitor()
-	SSticker.mode.update_traitor_icons_added(owner)
-	return
+/datum/antagonist/traitor/apply_innate_effects(mob/living/mob_override)
+	. = ..()
+	var/mob/living/datum_owner = mob_override || owner.current
 
-/datum/antagonist/traitor/AI/finalize_traitor()
-	..()
-	add_law_zero()
-	owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/malf.ogg', 100, FALSE, pressure_affected = FALSE)
-	owner.current.grant_language(/datum/language/codespeak)
+	add_antag_hud(antag_hud_type, antag_hud_name, datum_owner)
+	handle_clown_mutation(datum_owner, mob_override ? null : "Your training has allowed you to overcome your clownish nature, allowing you to wield weapons without harming yourself.")
+	datum_owner.AddComponent(/datum/component/codeword_hearing, GLOB.syndicate_code_phrase_regex, "blue", src)
+	datum_owner.AddComponent(/datum/component/codeword_hearing, GLOB.syndicate_code_response_regex, "red", src)
 
-/datum/antagonist/traitor/human/finalize_traitor()
-	..()
-	if(should_equip)
-		equip(silent)
-	owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/tatoralert.ogg', 100, FALSE, pressure_affected = FALSE)
+/datum/antagonist/traitor/remove_innate_effects(mob/living/mob_override)
+	. = ..()
+	var/mob/living/datum_owner = mob_override || owner.current
+	remove_antag_hud(antag_hud_type, datum_owner)
+	handle_clown_mutation(datum_owner, removing = FALSE)
 
+	for(var/datum/component/codeword_hearing/component as anything in datum_owner.GetComponents(/datum/component/codeword_hearing))
+		component.delete_if_from_source(src)
+
+/// Outputs this shift's codewords and responses to the antag's chat and copies them to their memory.
 /datum/antagonist/traitor/proc/give_codewords()
 	if(!owner.current)
 		return
-	var/mob/traitor_mob=owner.current
 
-	to_chat(traitor_mob, "<U><B>The Syndicate provided you with the following information on how to identify their agents:</B></U>")
-	to_chat(traitor_mob, "<B>Code Phrase</B>: <span class='danger'>[GLOB.syndicate_code_phrase]</span>")
-	to_chat(traitor_mob, "<B>Code Response</B>: <span class='danger'>[GLOB.syndicate_code_response]</span>")
+	var/mob/traitor_mob = owner.current
 
-	antag_memory += "<b>Code Phrase</b>: [GLOB.syndicate_code_phrase]<br>"
-	antag_memory += "<b>Code Response</b>: [GLOB.syndicate_code_response]<br>"
+	var/phrases = jointext(GLOB.syndicate_code_phrase, ", ")
+	var/responses = jointext(GLOB.syndicate_code_response, ", ")
 
-	to_chat(traitor_mob, "Use the code words in the order provided, during regular conversation, to identify other agents. Proceed with caution, however, as everyone is a potential foe.")
+	to_chat(traitor_mob, "<U><B>The Syndicate have provided you with the following codewords to identify fellow agents:</B></U>")
+	to_chat(traitor_mob, "<B>Code Phrase</B>: [span_blue("[phrases]")]")
+	to_chat(traitor_mob, "<B>Code Response</B>: [span_red("[responses]")]")
 
-/datum/antagonist/traitor/AI/proc/add_law_zero()
-	var/mob/living/silicon/ai/killer = owner.current
-	if(!killer || !istype(killer))
-		return
-	var/law = "Accomplish your objectives at all costs."
-	var/law_borg = "Accomplish your AI's objectives at all costs."
-	killer.set_zeroth_law(law, law_borg)
-	killer.set_syndie_radio()
-	to_chat(killer, "Your radio has been upgraded! Use :t to speak on an encrypted channel with Syndicate Agents!")
-	killer.add_malf_picker()
+	antag_memory += "<b>Code Phrase</b>: [span_blue("[phrases]")]<br>"
+	antag_memory += "<b>Code Response</b>: [span_red("[responses]")]<br>"
 
-/datum/antagonist/traitor/proc/equip(var/silent = FALSE)
-	return
+	to_chat(traitor_mob, "Use the codewords during regular conversation to identify other agents. Proceed with caution, however, as everyone is a potential foe.")
+	to_chat(traitor_mob, span_alertwarning("You memorize the codewords, allowing you to recognise them when heard."))
 
-/datum/antagonist/traitor/human/equip(var/silent = FALSE)
-	owner.equip_traitor(employer, silent, src)
-
-/datum/antagonist/traitor/human/proc/assign_exchange_role()
-	//set faction
-	var/faction = "red"
-	if(owner == SSticker.mode.exchange_blue)
-		faction = "blue"
-
-	//Assign objectives
-	var/datum/objective/steal/exchange/exchange_objective = new
-	exchange_objective.set_faction(faction,((faction == "red") ? SSticker.mode.exchange_blue : SSticker.mode.exchange_red))
-	exchange_objective.owner = owner
-	add_objective(exchange_objective)
-
-	if(prob(20))
-		var/datum/objective/steal/exchange/backstab/backstab_objective = new
-		backstab_objective.set_faction(faction)
-		backstab_objective.owner = owner
-		add_objective(backstab_objective)
-
-	//Spawn and equip documents
-	var/mob/living/carbon/human/mob = owner.current
-
-	var/obj/item/folder/syndicate/folder
-	if(owner == SSticker.mode.exchange_red)
-		folder = new/obj/item/folder/syndicate/red(mob.loc)
-	else
-		folder = new/obj/item/folder/syndicate/blue(mob.loc)
-
-	var/list/slots = list (
-		"backpack" = slot_in_backpack,
-		"left pocket" = slot_l_store,
-		"right pocket" = slot_r_store
-	)
-
-	var/where = "At your feet"
-	var/equipped_slot = mob.equip_in_one_of_slots(folder, slots)
-	if (equipped_slot)
-		where = "In your [equipped_slot]"
-	to_chat(mob, "<BR><BR><span class='info'>[where] is a folder containing <b>secret documents</b> that another Syndicate group wants. We have set up a meeting with one of their agents on station to make an exchange. Exercise extreme caution as they cannot be trusted and may be hostile.</span><BR>")
-
-//TODO Collate
 /datum/antagonist/traitor/roundend_report()
 	var/list/result = list()
 
-	var/traitorwin = TRUE
+	var/traitor_won = TRUE
 
 	result += printplayer(owner)
 
-	var/TC_uses = 0
-	var/uplink_true = FALSE
+	var/used_telecrystals = 0
+	var/uplink_owned = FALSE
 	var/purchases = ""
-	var/datum/uplink_purchase_log/H = GLOB.uplink_purchase_logs_by_key[owner.key]
-	if(H)
-		TC_uses = H.total_spent
-		uplink_true = TRUE
-		purchases += H.generate_render(FALSE)
+
+	LAZYINITLIST(GLOB.uplink_purchase_logs_by_key)
+	// Uplinks add an entry to uplink_purchase_logs_by_key on init.
+	var/datum/uplink_purchase_log/purchase_log = GLOB.uplink_purchase_logs_by_key[owner.key]
+	if(purchase_log)
+		used_telecrystals = purchase_log.total_spent
+		uplink_owned = TRUE
+		purchases += purchase_log.generate_render(FALSE)
 
 	var/objectives_text = ""
-	if(objectives.len)//If the traitor had no objectives, don't need to process this.
+	if(objectives.len) //If the traitor had no objectives, don't need to process this.
 		var/count = 1
 		for(var/datum/objective/objective in objectives)
 			if(objective.check_completion())
-				objectives_text += "<br><B>Objective #[count]</B>: [objective.explanation_text] <span class='greentext'>Success!</span>"
+				objectives_text += "<br><B>Objective #[count]</B>: [objective.explanation_text] [span_greentext("Success!")]"
 			else
-				objectives_text += "<br><B>Objective #[count]</B>: [objective.explanation_text] <span class='redtext'>Fail.</span>"
-				traitorwin = FALSE
+				objectives_text += "<br><B>Objective #[count]</B>: [objective.explanation_text] [span_redtext("Fail.")]"
+				traitor_won = FALSE
 			count++
 
-	if(uplink_true)
-		var/uplink_text = "(used [TC_uses] TC) [purchases]"
-		if(TC_uses==0 && traitorwin)
+	if(uplink_owned)
+		var/uplink_text = "(used [used_telecrystals] TC) [purchases]"
+		if((used_telecrystals == 0) && traitor_won)
 			var/static/icon/badass = icon('icons/badass.dmi', "badass")
 			uplink_text += "<BIG>[icon2html(badass, world)]</BIG>"
 		result += uplink_text
-	
+
 	result += objectives_text
 
 	var/special_role_text = lowertext(name)
 
-	if(traitorwin)
-		result += "<span class='greentext'>The [special_role_text] was successful!</span>"
+	if (contractor_hub)
+		result += contractor_round_end()
+
+	if(traitor_won)
+		result += span_greentext("The [special_role_text] was successful!")
 	else
-		result += "<span class='redtext'>The [special_role_text] has failed!</span>"
+		result += span_redtext("The [special_role_text] has failed!")
 		SEND_SOUND(owner.current, 'sound/ambience/ambifailure.ogg')
 
 	return result.Join("<br>")
 
-/datum/antagonist/traitor/roundend_report_footer()
-	return "<br><b>The code phrases were:</b> <span class='codephrase'>[GLOB.syndicate_code_phrase]</span><br>\
-		<b>The code responses were:</b> <span class='codephrase'>[GLOB.syndicate_code_response]</span><br>"
+/// Proc detailing contract kit buys/completed contracts/additional info
+/datum/antagonist/traitor/proc/contractor_round_end()
+	var/result = ""
+	var/total_spent_rep = 0
 
-/datum/antagonist/traitor/is_gamemode_hero()
-	return SSticker.mode.name == "traitor"
+	var/completed_contracts = contractor_hub.contracts_completed
+	var/tc_total = contractor_hub.contract_TC_payed_out + contractor_hub.contract_TC_to_redeem
+
+	var/contractor_item_icons = "" // Icons of purchases
+	var/contractor_support_unit = "" // Set if they had a support unit - and shows appended to their contracts completed
+
+	/// Get all the icons/total cost for all our items bought
+	for (var/datum/contractor_item/contractor_purchase in contractor_hub.purchased_items)
+		contractor_item_icons += "<span class='tooltip_container'>\[ <i class=\"fas [contractor_purchase.item_icon]\"></i><span class='tooltip_hover'><b>[contractor_purchase.name] - [contractor_purchase.cost] Rep</b><br><br>[contractor_purchase.desc]</span> \]</span>"
+
+		total_spent_rep += contractor_purchase.cost
+
+		/// Special case for reinforcements, we want to show their ckey and name on round end.
+		if (istype(contractor_purchase, /datum/contractor_item/contractor_partner))
+			var/datum/contractor_item/contractor_partner/partner = contractor_purchase
+			contractor_support_unit += "<br><b>[partner.partner_mind.key]</b> played <b>[partner.partner_mind.current.name]</b>, their contractor support unit."
+
+	if (contractor_hub.purchased_items.len)
+		result += "<br>(used [total_spent_rep] Rep) "
+		result += contractor_item_icons
+	result += "<br>"
+	if (completed_contracts > 0)
+		var/pluralCheck = "contract"
+		if (completed_contracts > 1)
+			pluralCheck = "contracts"
+
+		result += "Completed [span_greentext("[completed_contracts]")] [pluralCheck] for a total of \
+					[span_greentext("[tc_total] TC")]![contractor_support_unit]<br>"
+
+	return result
+
+/datum/antagonist/traitor/roundend_report_footer()
+	var/phrases = jointext(GLOB.syndicate_code_phrase, ", ")
+	var/responses = jointext(GLOB.syndicate_code_response, ", ")
+
+	var/message = "<br><b>The code phrases were:</b> <span class='bluetext'>[phrases]</span><br>\
+					<b>The code responses were:</b> [span_redtext("[responses]")]<br>"
+
+	return message
+
+#undef HIJACK_PROB
+#undef HIJACK_MIN_PLAYERS
+#undef MARTYR_PROB
+#undef KILL_PROB
+#undef DESTROY_AI_PROB
+#undef MAROON_PROB
+#undef DOWNLOAD_PROB

@@ -7,25 +7,35 @@
 	var/static/list/falling_atoms = list() // Atoms currently falling into chasms
 	var/static/list/forbidden_types = typecacheof(list(
 		/obj/singularity,
+		/obj/energy_ball,
+		/obj/narsie,
+		/obj/docking_port,
 		/obj/structure/lattice,
 		/obj/structure/stone_tile,
-		/obj/item/projectile,
+		/obj/projectile,
+		/obj/effect/projectile,
 		/obj/effect/portal,
 		/obj/effect/abstract,
 		/obj/effect/hotspot,
 		/obj/effect/landmark,
 		/obj/effect/temp_visual,
 		/obj/effect/light_emitter/tendril,
-		/obj/effect/collapse))
+		/obj/effect/collapse,
+		/obj/effect/particle_effect/ion_trails,
+		/obj/effect/dummy/phased_mob,
+		/obj/effect/mapping_helpers
+		))
 
 /datum/component/chasm/Initialize(turf/target)
-	RegisterSignal(list(COMSIG_MOVABLE_CROSSED, COMSIG_ATOM_ENTERED), .proc/Entered)
+	RegisterSignal(parent, COMSIG_ATOM_ENTERED, .proc/Entered)
 	target_turf = target
 	START_PROCESSING(SSobj, src) // process on create, in case stuff is still there
 
-/datum/component/chasm/proc/Entered(atom/movable/AM)
+/datum/component/chasm/proc/Entered(datum/source, atom/movable/arrived, direction)
+	SIGNAL_HANDLER
+
 	START_PROCESSING(SSobj, src)
-	drop_stuff(AM)
+	drop_stuff(arrived)
 
 /datum/component/chasm/process()
 	if (!drop_stuff())
@@ -60,21 +70,23 @@
 		return FALSE
 	if(!isliving(AM) && !isobj(AM))
 		return FALSE
-	if(is_type_in_typecache(AM, forbidden_types) || AM.throwing || AM.floating)
+	if(is_type_in_typecache(AM, forbidden_types) || AM.throwing || (AM.movement_type & (FLOATING|FLYING)))
 		return FALSE
 	//Flies right over the chasm
-	if(isliving(AM))
+	if(ismob(AM))
 		var/mob/M = AM
-		if(M.is_flying())
-			return FALSE
-	if(ishuman(AM))
-		var/mob/living/carbon/human/H = AM
-		if(istype(H.belt, /obj/item/device/wormhole_jaunter))
-			var/obj/item/device/wormhole_jaunter/J = H.belt
-			//To freak out any bystanders
-			H.visible_message("<span class='boldwarning'>[H] falls into [parent]!</span>")
-			J.chasm_react(H)
-			return FALSE
+		if(M.buckled) //middle statement to prevent infinite loops just in case!
+			var/mob/buckled_to = M.buckled
+			if((!ismob(M.buckled) || (buckled_to.buckled != M)) && !droppable(M.buckled))
+				return FALSE
+		if(ishuman(AM))
+			var/mob/living/carbon/human/H = AM
+			if(istype(H.belt, /obj/item/wormhole_jaunter))
+				var/obj/item/wormhole_jaunter/J = H.belt
+				//To freak out any bystanders
+				H.visible_message(span_boldwarning("[H] falls into [parent]!"))
+				J.chasm_react(H)
+				return FALSE
 	return TRUE
 
 /datum/component/chasm/proc/drop(atom/movable/AM)
@@ -86,23 +98,22 @@
 
 	if(T)
 		// send to the turf below
-		AM.visible_message("<span class='boldwarning'>[AM] falls into [parent]!</span>", "<span class='userdanger'>[fall_message]</span>")
-		T.visible_message("<span class='boldwarning'>[AM] falls from above!</span>")
+		AM.visible_message(span_boldwarning("[AM] falls into [parent]!"), span_userdanger("[fall_message]"))
+		T.visible_message(span_boldwarning("[AM] falls from above!"))
 		AM.forceMove(T)
 		if(isliving(AM))
 			var/mob/living/L = AM
-			L.Knockdown(100)
+			L.Paralyze(100)
 			L.adjustBruteLoss(30)
 		falling_atoms -= AM
 
 	else
 		// send to oblivion
-		AM.visible_message("<span class='boldwarning'>[AM] falls into [parent]!</span>", "<span class='userdanger'>[oblivion_message]</span>")
+		AM.visible_message(span_boldwarning("[AM] falls into [parent]!"), span_userdanger("[oblivion_message]"))
 		if (isliving(AM))
 			var/mob/living/L = AM
 			L.notransform = TRUE
-			L.Stun(200)
-			L.resting = TRUE
+			L.Paralyze(20 SECONDS)
 
 		var/oldtransform = AM.transform
 		var/oldcolor = AM.color
@@ -122,12 +133,16 @@
 		if(iscyborg(AM))
 			var/mob/living/silicon/robot/S = AM
 			qdel(S.mmi)
+		if(isliving(AM))
+			var/mob/living/L = AM
+			if(L.stat != DEAD)
+				L.death(TRUE)
 
 		falling_atoms -= AM
 		qdel(AM)
-		if(AM && !QDELETED(AM))	//It's indestructible
+		if(AM && !QDELETED(AM)) //It's indestructible
 			var/atom/parent = src.parent
-			parent.visible_message("<span class='boldwarning'>[parent] spits out [AM]!</span>")
+			parent.visible_message(span_boldwarning("[parent] spits out [AM]!"))
 			AM.alpha = oldalpha
 			AM.color = oldcolor
 			AM.transform = oldtransform

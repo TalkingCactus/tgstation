@@ -13,15 +13,17 @@
 	desc = "It has some sort of a tube at the end of its tail."
 	icon = 'icons/mob/alien.dmi'
 	icon_state = "facehugger"
-	item_state = "facehugger"
+	base_icon_state = "facehugger"
+	inhand_icon_state = "facehugger"
+	worn_icon_state = "facehugger"
 	w_class = WEIGHT_CLASS_TINY //note: can be picked up by aliens unlike most other items of w_class below 4
-	flags_1 = MASKINTERNALS_1
+	clothing_flags = MASKINTERNALS
 	throw_range = 5
 	tint = 3
 	flags_cover = MASKCOVERSEYES | MASKCOVERSMOUTH
 	layer = MOB_LAYER
 	max_integrity = 100
-
+	item_flags = XENOMORPH_HOLDABLE
 	var/stat = CONSCIOUS //UNCONSCIOUS is the idle state in this case
 
 	var/sterile = FALSE
@@ -30,18 +32,29 @@
 
 	var/attached = 0
 
+/obj/item/clothing/mask/facehugger/Initialize(mapload)
+	. = ..()
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = .proc/on_entered,
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+	AddElement(/datum/element/atmos_sensitive, mapload)
+
 /obj/item/clothing/mask/facehugger/lamarr
 	name = "Lamarr"
+	desc = "The Research Director's pet, a domesticated and debeaked xenomorph facehugger. Friendly, but may still try to couple with your head."
 	sterile = 1
 
 /obj/item/clothing/mask/facehugger/dead
 	icon_state = "facehugger_dead"
-	item_state = "facehugger_inactive"
+	inhand_icon_state = "facehugger_inactive"
+	worn_icon_state = "facehugger_dead"
 	stat = DEAD
 
 /obj/item/clothing/mask/facehugger/impregnated
 	icon_state = "facehugger_impregnated"
-	item_state = "facehugger_impregnated"
+	inhand_icon_state = "facehugger_impregnated"
+	worn_icon_state = "facehugger_impregnated"
 	stat = DEAD
 
 /obj/item/clothing/mask/facehugger/take_damage(damage_amount, damage_type = BRUTE, damage_flag = 0, sound_effect = 1, attack_dir)
@@ -50,17 +63,14 @@
 		Die()
 
 /obj/item/clothing/mask/facehugger/attackby(obj/item/O, mob/user, params)
-	return O.attack_obj(src, user)
+	return O.attack_obj(src, user, params)
 
-/obj/item/clothing/mask/facehugger/attack_alien(mob/user) //can be picked up by aliens
-	attack_hand(user)
-	return
-
-/obj/item/clothing/mask/facehugger/attack_hand(mob/user)
+//ATTACK HAND IGNORING PARENT RETURN VALUE
+/obj/item/clothing/mask/facehugger/attack_hand(mob/user, list/modifiers)
 	if((stat == CONSCIOUS && !sterile) && !isalien(user))
 		if(Leap(user))
 			return
-	..()
+	. = ..()
 
 /obj/item/clothing/mask/facehugger/attack(mob/living/M, mob/user)
 	..()
@@ -68,54 +78,55 @@
 		Leap(M)
 
 /obj/item/clothing/mask/facehugger/examine(mob/user)
-	..()
+	. = ..()
 	if(!real)//So that giant red text about probisci doesn't show up.
 		return
 	switch(stat)
 		if(DEAD,UNCONSCIOUS)
-			to_chat(user, "<span class='boldannounce'>[src] is not moving.</span>")
+			. += span_boldannounce("[src] is not moving.")
 		if(CONSCIOUS)
-			to_chat(user, "<span class='boldannounce'>[src] seems to be active!</span>")
+			. += span_boldannounce("[src] seems to be active!")
 	if (sterile)
-		to_chat(user, "<span class='boldannounce'>It looks like the proboscis has been removed.</span>")
+		. += span_boldannounce("It looks like the proboscis has been removed.")
 
+/obj/item/clothing/mask/facehugger/should_atmos_process(datum/gas_mixture/air, exposed_temperature)
+	return (exposed_temperature > 300)
 
-/obj/item/clothing/mask/facehugger/temperature_expose(datum/gas_mixture/air, exposed_temperature, exposed_volume)
-	if(exposed_temperature > 300)
-		Die()
+/obj/item/clothing/mask/facehugger/atmos_expose(datum/gas_mixture/air, exposed_temperature)
+	Die()
 
 /obj/item/clothing/mask/facehugger/equipped(mob/M)
+	. = ..()
 	Attach(M)
 
-/obj/item/clothing/mask/facehugger/Crossed(atom/target)
+/obj/item/clothing/mask/facehugger/proc/on_entered(datum/source, atom/target)
+	SIGNAL_HANDLER
 	HasProximity(target)
-	return
 
 /obj/item/clothing/mask/facehugger/on_found(mob/finder)
 	if(stat == CONSCIOUS)
 		return HasProximity(finder)
-	return 0
 
 /obj/item/clothing/mask/facehugger/HasProximity(atom/movable/AM as mob|obj)
 	if(CanHug(AM) && Adjacent(AM))
 		return Leap(AM)
-	return 0
 
-/obj/item/clothing/mask/facehugger/throw_at(atom/target, range, speed, mob/thrower, spin=1, diagonals_first = 0, datum/callback/callback)
-	if(!..())
+/obj/item/clothing/mask/facehugger/throw_at(atom/target, range, speed, mob/thrower, spin=1, diagonals_first = 0, datum/callback/callback, quickstart = TRUE)
+	. = ..()
+	if(!.)
 		return
 	if(stat == CONSCIOUS)
-		icon_state = "[initial(icon_state)]_thrown"
+		icon_state = "[base_icon_state]_thrown"
 		addtimer(CALLBACK(src, .proc/clear_throw_icon_state), 15)
 
 /obj/item/clothing/mask/facehugger/proc/clear_throw_icon_state()
-	if(icon_state == "[initial(icon_state)]_thrown")
-		icon_state = "[initial(icon_state)]"
+	if(icon_state == "[base_icon_state]_thrown")
+		icon_state = "[base_icon_state]"
 
-/obj/item/clothing/mask/facehugger/throw_impact(atom/hit_atom)
+/obj/item/clothing/mask/facehugger/throw_impact(atom/hit_atom, datum/thrownthing/throwingdatum)
 	..()
 	if(stat == CONSCIOUS)
-		icon_state = "[initial(icon_state)]"
+		icon_state = "[base_icon_state]"
 		Leap(hit_atom)
 
 /obj/item/clothing/mask/facehugger/proc/valid_to_attach(mob/living/M)
@@ -127,14 +138,14 @@
 		return FALSE
 	if(iscarbon(M))
 		// disallowed carbons
-		if(isalien(M) || isdevil(M))
+		if(isalien(M))
 			return FALSE
 		var/mob/living/carbon/target = M
 		// gotta have a head to be implanted (no changelings or sentient plants)
-		if(!target.get_bodypart("head"))
+		if(!target.get_bodypart(BODY_ZONE_HEAD))
 			return FALSE
-
-		if(target.getorgan(/obj/item/organ/alien/hivenode) || target.getorgan(/obj/item/organ/body_egg/alien_embryo))
+		// gotta be able to have the xeno implanted
+		if(HAS_TRAIT(M, TRAIT_XENO_IMMUNE))
 			return FALSE
 		// carbon, has head, not alien or devil, has no hivenode or embryo: valid
 		return TRUE
@@ -149,8 +160,8 @@
 		if(target.wear_mask && istype(target.wear_mask, /obj/item/clothing/mask/facehugger))
 			return FALSE
 	// passed initial checks - time to leap!
-	M.visible_message("<span class='danger'>[src] leaps at [M]'s face!</span>", \
-							"<span class='userdanger'>[src] leaps at [M]'s face!</span>")
+	M.visible_message(span_danger("[src] leaps at [M]'s face!"), \
+							span_userdanger("[src] leaps at your face!"))
 
 	// probiscis-blocker handling
 	if(iscarbon(M))
@@ -159,17 +170,17 @@
 		if(ishuman(M))
 			var/mob/living/carbon/human/H = M
 			if(H.is_mouth_covered(head_only = 1))
-				H.visible_message("<span class='danger'>[src] smashes against [H]'s [H.head]!</span>", \
-									"<span class='userdanger'>[src] smashes against [H]'s [H.head]!</span>")
+				H.visible_message(span_danger("[src] smashes against [H]'s [H.head]!"), \
+									span_userdanger("[src] smashes against your [H.head]!"))
 				Die()
 				return FALSE
 
 		if(target.wear_mask)
 			var/obj/item/clothing/W = target.wear_mask
 			if(target.dropItemToGround(W))
-				target.visible_message("<span class='danger'>[src] tears [W] off of [target]'s face!</span>", \
-									"<span class='userdanger'>[src] tears [W] off of [target]'s face!</span>")
-		target.equip_to_slot_if_possible(src, slot_wear_mask, 0, 1, 1)
+				target.visible_message(span_danger("[src] tears [W] off of [target]'s face!"), \
+									span_userdanger("[src] tears [W] off of your face!"))
+		target.equip_to_slot_if_possible(src, ITEM_SLOT_MASK, 0, 1, 1)
 	return TRUE // time for a smoke
 
 /obj/item/clothing/mask/facehugger/proc/Attach(mob/living/M)
@@ -202,34 +213,38 @@
 			return
 
 	if(!sterile)
-		//target.contract_disease(new /datum/disease/alien_embryo(0)) //so infection chance is same as virus infection chance
-		target.visible_message("<span class='danger'>[src] falls limp after violating [target]'s face!</span>", \
-								"<span class='userdanger'>[src] falls limp after violating [target]'s face!</span>")
+		target.visible_message(span_danger("[src] falls limp after violating [target]'s face!"), \
+								span_userdanger("[src] falls limp after violating your face!"))
 
 		Die()
-		icon_state = "[initial(icon_state)]_impregnated"
+		icon_state = "[base_icon_state]_impregnated"
+		worn_icon_state = "[base_icon_state]_impregnated"
 
-		var/obj/item/bodypart/chest/LC = target.get_bodypart("chest")
+		var/obj/item/bodypart/chest/LC = target.get_bodypart(BODY_ZONE_CHEST)
 		if((!LC || LC.status != BODYPART_ROBOTIC) && !target.getorgan(/obj/item/organ/body_egg/alien_embryo))
 			new /obj/item/organ/body_egg/alien_embryo(target)
+			var/turf/T = get_turf(target)
+			log_game("[key_name(target)] was impregnated by a facehugger at [loc_name(T)]")
 
 	else
-		target.visible_message("<span class='danger'>[src] violates [target]'s face!</span>", \
-								"<span class='userdanger'>[src] violates [target]'s face!</span>")
+		target.visible_message(span_danger("[src] violates [target]'s face!"), \
+								span_userdanger("[src] violates your face!"))
 
 /obj/item/clothing/mask/facehugger/proc/GoActive()
 	if(stat == DEAD || stat == CONSCIOUS)
 		return
 
 	stat = CONSCIOUS
-	icon_state = "[initial(icon_state)]"
+	icon_state = "[base_icon_state]"
+	worn_icon_state = "[base_icon_state]"
 
 /obj/item/clothing/mask/facehugger/proc/GoIdle()
 	if(stat == DEAD || stat == UNCONSCIOUS)
 		return
 
 	stat = UNCONSCIOUS
-	icon_state = "[initial(icon_state)]_inactive"
+	icon_state = "[base_icon_state]_inactive"
+	worn_icon_state = "[base_icon_state]_inactive"
 
 	addtimer(CALLBACK(src, .proc/GoActive), rand(MIN_ACTIVE_TIME, MAX_ACTIVE_TIME))
 
@@ -237,30 +252,27 @@
 	if(stat == DEAD)
 		return
 
-	icon_state = "[initial(icon_state)]_dead"
-	item_state = "facehugger_inactive"
+	icon_state = "[base_icon_state]_dead"
+	worn_icon_state = "[base_icon_state]_dead"
+	inhand_icon_state = "facehugger_inactive"
 	stat = DEAD
 
-	visible_message("<span class='danger'>[src] curls up into a ball!</span>")
+	visible_message(span_danger("[src] curls up into a ball!"))
 
 /proc/CanHug(mob/living/M)
 	if(!istype(M))
-		return 0
+		return FALSE
 	if(M.stat == DEAD)
-		return 0
+		return FALSE
 	if(M.getorgan(/obj/item/organ/alien/hivenode))
-		return 0
-
-	if(ismonkey(M))
-		return 1
-
+		return FALSE
 	var/mob/living/carbon/C = M
-	if(ishuman(C) && !(slot_wear_mask in C.dna.species.no_equip))
+	if(ishuman(C) && !(ITEM_SLOT_MASK in C.dna.species.no_equip))
 		var/mob/living/carbon/human/H = C
 		if(H.is_mouth_covered(head_only = 1))
-			return 0
-		return 1
-	return 0
+			return FALSE
+		return TRUE
+	return FALSE
 
 #undef MIN_ACTIVE_TIME
 #undef MAX_ACTIVE_TIME

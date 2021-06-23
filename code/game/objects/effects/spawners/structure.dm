@@ -10,7 +10,7 @@ again.
 
 /obj/effect/spawner/structure/Initialize()
 	. = ..()
-	if(spawn_list && spawn_list.len)
+	if(spawn_list?.len)
 		for(var/I in spawn_list)
 			new I(get_turf(src))
 	return INITIALIZE_HINT_QDEL
@@ -24,6 +24,13 @@ again.
 	name = "window spawner"
 	spawn_list = list(/obj/structure/grille, /obj/structure/window/fulltile)
 	dir = SOUTH
+
+/obj/effect/spawner/structure/window/Initialize()
+	. = ..()
+
+	if (is_station_level(z))
+		var/turf/current_turf = get_turf(src)
+		current_turf.rcd_memory = RCD_MEMORY_WINDOWGRILLE
 
 /obj/effect/spawner/structure/window/hollow
 	name = "hollow window spawner"
@@ -151,9 +158,87 @@ again.
 //shuttle window
 
 /obj/effect/spawner/structure/window/shuttle
-	name = "reinforced tinted window spawner"
+	name = "shuttle window spawner"
 	icon_state = "swindow_spawner"
 	spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle)
+
+
+//plastitanium window
+
+/obj/effect/spawner/structure/window/plasma/reinforced/plastitanium
+	name = "plastitanium window spawner"
+	icon_state = "plastitaniumwindow_spawner"
+	spawn_list = list(/obj/structure/grille, /obj/structure/window/plasma/reinforced/plastitanium)
+
+
+//ice window
+
+/obj/effect/spawner/structure/window/ice
+	name = "ice window spawner"
+	icon_state = "icewindow_spawner"
+	spawn_list = list(/obj/structure/grille, /obj/structure/window/reinforced/fulltile/ice)
+
+
+//survival pod window
+
+/obj/effect/spawner/structure/window/survival_pod
+	name = "pod window spawner"
+	icon_state = "podwindow_spawner"
+	spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod)
+
+/obj/effect/spawner/structure/window/hollow/survival_pod
+	name = "hollow pod window spawner"
+	icon_state = "podwindow_spawner_full"
+	spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod, /obj/structure/window/shuttle/survival_pod/spawner/north, /obj/structure/window/shuttle/survival_pod/spawner/east, /obj/structure/window/shuttle/survival_pod/spawner/west)
+
+/obj/effect/spawner/structure/window/hollow/survival_pod/end
+	icon_state = "podwindow_spawner_end"
+
+/obj/effect/spawner/structure/window/hollow/survival_pod/end/Initialize()
+	switch(dir)
+		if(NORTH)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod/spawner/north, /obj/structure/window/shuttle/survival_pod/spawner/east, /obj/structure/window/shuttle/survival_pod/spawner/west)
+		if(EAST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod, /obj/structure/window/shuttle/survival_pod/spawner/north, /obj/structure/window/shuttle/survival_pod/spawner/east)
+		if(SOUTH)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod, /obj/structure/window/shuttle/survival_pod/spawner/east, /obj/structure/window/shuttle/survival_pod/spawner/west)
+		if(WEST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod, /obj/structure/window/shuttle/survival_pod/spawner/north, /obj/structure/window/shuttle/survival_pod/spawner/west)
+	. = ..()
+
+/obj/effect/spawner/structure/window/hollow/survival_pod/middle
+	icon_state = "podwindow_spawner_middle"
+
+/obj/effect/spawner/structure/window/hollow/survival_pod/middle/Initialize()
+	switch(dir)
+		if(NORTH,SOUTH)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod, /obj/structure/window/shuttle/survival_pod/spawner/north)
+		if(EAST,WEST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod/spawner/east, /obj/structure/window/shuttle/survival_pod/spawner/west)
+	. = ..()
+
+/obj/effect/spawner/structure/window/hollow/survival_pod/directional
+	icon_state = "podwindow_spawner_directional"
+
+/obj/effect/spawner/structure/window/hollow/survival_pod/directional/Initialize()
+	switch(dir)
+		if(NORTH)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod/spawner/north)
+		if(NORTHEAST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod/spawner/north, /obj/structure/window/shuttle/survival_pod/spawner/east)
+		if(EAST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod/spawner/east)
+		if(SOUTHEAST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod, /obj/structure/window/shuttle/survival_pod/spawner/east)
+		if(SOUTH)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod)
+		if(SOUTHWEST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod, /obj/structure/window/shuttle/survival_pod/spawner/west)
+		if(WEST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod/spawner/west)
+		if(NORTHWEST)
+			spawn_list = list(/obj/structure/grille, /obj/structure/window/shuttle/survival_pod/spawner/north, /obj/structure/window/shuttle/survival_pod/spawner/west)
+	. = ..()
 
 
 //plasma windows
@@ -225,7 +310,7 @@ again.
 	spawn_list = list(/obj/structure/grille, /obj/structure/window/plasma/reinforced/fulltile)
 
 /obj/effect/spawner/structure/window/hollow/plasma/reinforced
-	name = "hollow plasma window spawner"
+	name = "hollow reinforced plasma window spawner"
 	icon_state = "phrwindow_spawner_full"
 	spawn_list = list(/obj/structure/grille, /obj/structure/window/plasma/reinforced, /obj/structure/window/plasma/reinforced/spawner/north, /obj/structure/window/plasma/reinforced/spawner/east, /obj/structure/window/plasma/reinforced/spawner/west)
 

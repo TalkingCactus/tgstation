@@ -3,12 +3,9 @@
 // (
 
 #define NUM_E 2.71828183
-#define NUM_SQRT2 1.41421356
 
-#define PI						3.1415
-#define SPEED_OF_LIGHT			3e8		//not exact but hey!
-#define SPEED_OF_LIGHT_SQ		9e+16
-#define INFINITY				1e31	//closer then enough
+#define PI 3.1416
+#define INFINITY 1e31 //closer then enough
 
 #define SHORT_REAL_LIMIT 16777216
 
@@ -19,33 +16,29 @@
 #define TICK_USAGE_TO_MS(starting_tickusage) (TICK_DELTA_TO_MS(TICK_USAGE_REAL - starting_tickusage))
 
 #define PERCENT(val) (round((val)*100, 0.1))
-#define CLAMP01(x) (CLAMP(x, 0, 1))
+#define CLAMP01(x) (clamp(x, 0, 1))
 
 //time of day but automatically adjusts to the server going into the next day within the same round.
 //for when you need a reliable time number that doesn't depend on byond time.
 #define REALTIMEOFDAY (world.timeofday + (MIDNIGHT_ROLLOVER * MIDNIGHT_ROLLOVER_CHECK))
 #define MIDNIGHT_ROLLOVER_CHECK ( GLOB.rollovercheck_last_timeofday != world.timeofday ? update_midnight_rollover() : GLOB.midnight_rollovers )
 
-#define SIGN(x) ( (x)!=0 ? (x) / abs(x) : 0 )
+/// Gets the sign of x, returns -1 if negative, 0 if 0, 1 if positive
+#define SIGN(x) ( ((x) > 0) - ((x) < 0) )
 
 #define CEILING(x, y) ( -round(-(x) / (y)) * (y) )
 
 // round() acts like floor(x, 1) by default but can't handle other values
 #define FLOOR(x, y) ( round((x) / (y)) * (y) )
 
-#define CLAMP(CLVALUE,CLMIN,CLMAX) ( max( (CLMIN), min((CLVALUE), (CLMAX)) ) )
-
 // Similar to clamp but the bottom rolls around to the top and vice versa. min is inclusive, max is exclusive
-#define WRAP(val, min, max) ( min == max ? min : (val) - (round(((val) - (min))/((max) - (min))) * ((max) - (min))) )
+#define WRAP(val, min, max) clamp(( min == max ? min : (val) - (round(((val) - (min))/((max) - (min))) * ((max) - (min))) ),min,max)
 
 // Real modulus that handles decimals
 #define MODULUS(x, y) ( (x) - (y) * round((x) / (y)) )
 
-// Tangent
-#define TAN(x) (sin(x) / cos(x))
-
 // Cotangent
-#define COT(x) (1 / TAN(x))
+#define COT(x) (1 / tan(x))
 
 // Secant
 #define SEC(x) (1 / cos(x))
@@ -77,7 +70,7 @@
 #define ISINRANGE(val, min, max) (min <= val && val <= max)
 
 // Same as above, exclusive.
-#define ISINRANGE_EX(val, min, max) (min < val && val > max)
+#define ISINRANGE_EX(val, min, max) (min < val && val < max)
 
 #define ISINTEGER(x) (round(x) == x)
 
@@ -91,12 +84,17 @@
 // Returns the nth root of x.
 #define ROOT(n, x) ((x) ** (1 / (n)))
 
+/// Low-pass filter a value to smooth out high frequent peaks. This can be thought of as a moving average filter as well.
+/// delta_time is how many seconds since we last ran this command. RC is the filter constant, high RC means more smoothing
+/// See https://en.wikipedia.org/wiki/Low-pass_filter#Simple_infinite_impulse_response_filter for the maths
+#define LPFILTER(memory, signal, delta_time, RC) (delta_time / (RC + delta_time)) * signal + (1 - delta_time / (RC + delta_time)) * memory
+
 // The quadratic formula. Returns a list with the solutions, or an empty list
 // if they are imaginary.
 /proc/SolveQuadratic(a, b, c)
 	ASSERT(a)
 	. = list()
-	var/d		= b*b - 4 * a * c
+	var/d = b*b - 4 * a * c
 	var/bottom  = 2 * a
 	if(d < 0)
 		return
@@ -110,11 +108,28 @@
 
 #define TORADIANS(degrees) ((degrees) * 0.0174532925)
 
+/// Gets shift x that would be required the bitflag (1<<x)
+#define TOBITSHIFT(bit) ( log(2, bit) )
+
 // Will filter out extra rotations and negative rotations
 // E.g: 540 becomes 180. -180 becomes 180.
 #define SIMPLIFY_DEGREES(degrees) (MODULUS((degrees), 360))
 
 #define GET_ANGLE_OF_INCIDENCE(face, input) (MODULUS((face) - (input), 360))
+
+//Finds the shortest angle that angle A has to change to get to angle B. Aka, whether to move clock or counterclockwise.
+/proc/closer_angle_difference(a, b)
+	if(!isnum(a) || !isnum(b))
+		return
+	a = SIMPLIFY_DEGREES(a)
+	b = SIMPLIFY_DEGREES(b)
+	var/inc = b - a
+	if(inc < 0)
+		inc += 360
+	var/dec = a - b
+	if(dec < 0)
+		dec += 360
+	. = inc > dec? -dec : inc
 
 //A logarithm that converts an integer to a number scaled between 0 and 1.
 //Currently, this is used for hydroponics-produce sprite transforming, but could be useful for other transform functions.
@@ -146,22 +161,6 @@
 	return (mean + stddev * R1)
 #undef ACCURACY
 
-/proc/mouse_angle_from_client(client/client)
-	var/list/mouse_control = params2list(client.mouseParams)
-	if(mouse_control["screen-loc"] && client)
-		var/list/screen_loc_params = splittext(mouse_control["screen-loc"], ",")
-		var/list/screen_loc_X = splittext(screen_loc_params[1],":")
-		var/list/screen_loc_Y = splittext(screen_loc_params[2],":")
-		var/x = (text2num(screen_loc_X[1]) * 32 + text2num(screen_loc_X[2]) - 32)
-		var/y = (text2num(screen_loc_Y[1]) * 32 + text2num(screen_loc_Y[2]) - 32)
-		var/list/screenview = getviewsize(client.view)
-		var/screenviewX = screenview[1] * world.icon_size
-		var/screenviewY = screenview[2] * world.icon_size
-		var/ox = round(screenviewX/2) - client.pixel_x //"origin" x
-		var/oy = round(screenviewY/2) - client.pixel_y //"origin" y
-		var/angle = SIMPLIFY_DEGREES(ATAN2(y - oy, x - ox))
-		return angle
-
 /proc/get_turf_in_angle(angle, turf/starting, increments)
 	var/pixel_x = 0
 	var/pixel_y = 0
@@ -182,8 +181,8 @@
 	while(pixel_y < -16)
 		pixel_y += 32
 		new_y--
-	new_x = CLAMP(new_x, 0, world.maxx)
-	new_y = CLAMP(new_y, 0, world.maxy)
+	new_x = clamp(new_x, 1, world.maxx)
+	new_y = clamp(new_y, 1, world.maxy)
 	return locate(new_x, new_y, starting.z)
 
 // Returns a list where [1] is all x values and [2] is all y values that overlap between the given pair of rectangles
@@ -206,4 +205,19 @@
 
 	return list(region_x1 & region_x2, region_y1 & region_y2)
 
+#define EXP_DISTRIBUTION(desired_mean) ( -(1/(1/desired_mean)) * log(rand(1, 1000) * 0.001) )
+
+#define LORENTZ_DISTRIBUTION(x, s) ( s*tan(TODEGREES(PI*(rand()-0.5))) + x )
+#define LORENTZ_CUMULATIVE_DISTRIBUTION(x, y, s) ( (1/PI)*TORADIANS(arctan((x-y)/s)) + 1/2 )
+
+#define RULE_OF_THREE(a, b, x) ((a*x)/b)
+
+/// Converts a probability/second chance to probability/delta_time chance
+/// For example, if you want an event to happen with a 10% per second chance, but your proc only runs every 5 seconds, do `if(prob(100*DT_PROB_RATE(0.1, 5)))`
+#define DT_PROB_RATE(prob_per_second, delta_time) (1 - (1 - (prob_per_second)) ** (delta_time))
+
+/// Like DT_PROB_RATE but easier to use, simply put `if(DT_PROB(10, 5))`
+#define DT_PROB(prob_per_second_percent, delta_time) (prob(100*DT_PROB_RATE((prob_per_second_percent)/100, (delta_time))))
 // )
+
+#define GET_TRUE_DIST(a, b) (a == null || b == null) ? -1 : max(abs(a.x -b.x), abs(a.y-b.y), abs(a.z-b.z))

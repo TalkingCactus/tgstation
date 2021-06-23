@@ -1,7 +1,7 @@
 /* Code for the Wild West map by Brotemis
  * Contains:
- *		Wish Granter
- *		Meat Grinder
+ * Wish Granter
+ * Meat Grinder
  */
 
 //Areas
@@ -31,7 +31,7 @@
 	requires_power = FALSE
 
 
- ////////// wildwest papers
+///////// wildwest papers
 
 /obj/item/paper/fluff/awaymissions/wildwest/grinder
 	info = "meat grinder requires sacri"
@@ -47,7 +47,7 @@
 
 /obj/item/paper/fluff/awaymissions/wildwest/journal/page7
 	name = "Planer Sauls' Journal: Page 7"
-	info = "The Vault...it just keeps growing and growing.  I went on my daily walk through the garden and now its just right outside the mansion... a few days ago it was only barely visible. But whatever is inside...its calling to me."
+	info = "The Vault...it just keeps growing and growing.  I went on my daily walk through the garden and now it's just right outside the mansion... a few days ago it was only barely visible. But whatever is inside...it's calling to me."
 
 /obj/item/paper/fluff/awaymissions/wildwest/journal/page8
 	name = "Planer Saul's Journal: Page 8"
@@ -63,16 +63,13 @@
 	icon = 'icons/obj/device.dmi'
 	icon_state = "syndbeacon"
 
-	anchored = TRUE
 	density = TRUE
 	use_power = NO_POWER_USE
 
 	var/chargesa = 1
 	var/insistinga = 0
 
-/obj/machinery/wish_granter_dark/attack_hand(mob/living/carbon/human/user)
-	usr.set_machine(src)
-
+/obj/machinery/wish_granter_dark/interact(mob/living/carbon/human/user)
 	if(chargesa <= 0)
 		to_chat(user, "The Wish Granter lies silent.")
 		return
@@ -82,22 +79,22 @@
 		return
 
 	else if(is_special_character(user))
-		to_chat(user, "Even to a heart as dark as yours, you know nothing good will come of this.  Something instinctual makes you pull away.")
+		to_chat(user, "Even to a heart as dark as yours, you know nothing good will come of this. Something instinctual makes you pull away.")
 
 	else if (!insistinga)
-		to_chat(user, "Your first touch makes the Wish Granter stir, listening to you.  Are you really sure you want to do this?")
+		to_chat(user, "Your first touch makes the Wish Granter stir, listening to you. Are you really sure you want to do this?")
 		insistinga++
 
 	else
 		chargesa--
 		insistinga = 0
-		var/wish = input("You want...","Wish") as null|anything in list("Power","Wealth","Immortality","To Kill","Peace")
+		var/wish = input("You want...","Wish") as null|anything in sortList(list("Power","Wealth","Immortality","Peace"))
 		switch(wish)
 			if("Power")
 				to_chat(user, "<B>Your wish is granted, but at a terrible cost...</B>")
 				to_chat(user, "The Wish Granter punishes you for your selfishness, claiming your soul and warping your body to match the darkness in your heart.")
 				user.dna.add_mutation(LASEREYES)
-				user.dna.add_mutation(COLDRES)
+				user.dna.add_mutation(SPACEMUT)
 				user.dna.add_mutation(XRAY)
 				user.set_species(/datum/species/shadow)
 			if("Wealth")
@@ -108,19 +105,7 @@
 			if("Immortality")
 				to_chat(user, "<B>Your wish is granted, but at a terrible cost...</B>")
 				to_chat(user, "The Wish Granter punishes you for your selfishness, claiming your soul and warping your body to match the darkness in your heart.")
-				user.verbs += /mob/living/carbon/proc/immortality
-				user.set_species(/datum/species/shadow)
-			if("To Kill")
-				to_chat(user, "<B>Your wish is granted, but at a terrible cost...</B>")
-				to_chat(user, "The Wish Granter punishes you for your wickedness, claiming your soul and warping your body to match the darkness in your heart.")
-				user.mind.special_role = "traitor"
-				
-				var/datum/objective/hijack/hijack = new
-				hijack.owner = user.mind
-				user.mind.objectives += hijack
-				user.mind.add_antag_datum(/datum/antagonist/auto_custom)
-				to_chat(user, "<B>Your inhibitions are swept away, the bonds of loyalty broken, you are free to murder as you please!</B>")
-				user.mind.announce_objectives()
+				add_verb(user, /mob/living/carbon/proc/immortality)
 				user.set_species(/datum/species/shadow)
 			if("Peace")
 				to_chat(user, "<B>Whatever alien sentience that the Wish Granter possesses is satisfied with your wish. There is a distant wailing as the last of the Faithless begin to die, then silence.</B>")
@@ -141,10 +126,18 @@
 	icon_state = "blobpod"
 	var/triggered = 0
 
-/obj/effect/meatgrinder/Crossed(atom/movable/AM)
-	CollidedWith(AM)
+/obj/effect/meatgrinder/Initialize(mapload)
+	. = ..()
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = .proc/on_entered,
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
 
-/obj/effect/meatgrinder/CollidedWith(atom/movable/AM)
+/obj/effect/meatgrinder/proc/on_entered(datum/source, atom/movable/AM)
+	SIGNAL_HANDLER
+	Bumped(AM)
+
+/obj/effect/meatgrinder/Bumped(atom/movable/AM)
 
 	if(triggered)
 		return
@@ -154,13 +147,13 @@
 	var/mob/living/carbon/human/M = AM
 
 	if(M.stat != DEAD && M.ckey)
-		visible_message("<span class='warning'>[M] triggered [src]!</span>")
+		visible_message(span_warning("[M] triggered [src]!"))
 		triggered = 1
 
 		var/datum/effect_system/spark_spread/s = new /datum/effect_system/spark_spread
 		s.set_up(3, 1, src)
 		s.start()
-		explosion(M, 1, 0, 0, 0)
+		explosion(src, devastation_range = 1)
 		qdel(src)
 
 /////For the Wishgranter///////////
@@ -171,10 +164,10 @@
 
 	var/mob/living/carbon/C = usr
 	if(!C.stat)
-		to_chat(C, "<span class='notice'>You're not dead yet!</span>")
+		to_chat(C, span_notice("You're not dead yet!"))
 		return
 	if(C.has_status_effect(STATUS_EFFECT_WISH_GRANTERS_GIFT))
-		to_chat(C, "<span class='warning'>You're already resurrecting!</span>")
+		to_chat(C, span_warning("You're already resurrecting!"))
 		return
 	C.apply_status_effect(STATUS_EFFECT_WISH_GRANTERS_GIFT)
 	return 1

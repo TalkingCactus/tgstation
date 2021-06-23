@@ -2,10 +2,10 @@
 //This proc is the most basic of the procs. All it does is make a new mob on the same tile and transfer over a few variables.
 //Returns the new mob
 //Note that this proc does NOT do MMI related stuff!
-/mob/proc/change_mob_type(new_type = null, turf/location = null, new_name = null as text, delete_old_mob = 0 as num)
+/mob/proc/change_mob_type(new_type = null, turf/location = null, new_name = null as text, delete_old_mob = FALSE)
 
 	if(isnewplayer(src))
-		to_chat(usr, "<span class='danger'>Cannot convert players who have not entered yet.</span>")
+		to_chat(usr, span_danger("Cannot convert players who have not entered yet."))
 		return
 
 	if(!new_type)
@@ -19,7 +19,7 @@
 		return
 
 	if(ispath(new_type, /mob/dead/new_player))
-		to_chat(usr, "<span class='danger'>Cannot convert into a new_player mob type.</span>")
+		to_chat(usr, span_danger("Cannot convert into a new_player mob type."))
 		return
 
 	var/mob/M

@@ -28,6 +28,15 @@
 		for(var/obj/O in T)
 			if((O.density && O.anchored) || is_type_in_typecache(O, banned_objects))
 				return SHELTER_DEPLOY_ANCHORED_OBJECTS
+
+	// Check if the shelter sticks out of map borders
+	var/shelter_origin_x = deploy_location.x - round(width/2)
+	if(shelter_origin_x <= 1 || shelter_origin_x+width > world.maxx)
+		return SHELTER_DEPLOY_OUTSIDE_MAP
+	var/shelter_origin_y = deploy_location.y - round(height/2)
+	if(shelter_origin_y <= 1 || shelter_origin_y+height > world.maxy)
+		return SHELTER_DEPLOY_OUTSIDE_MAP
+
 	return SHELTER_DEPLOY_ALLOWED
 
 /datum/map_template/shelter/alpha
@@ -55,6 +64,21 @@
 	mappath = "_maps/templates/shelter_2.dmm"
 
 /datum/map_template/shelter/beta/New()
+	. = ..()
+	whitelisted_turfs = typecacheof(/turf/closed/mineral)
+	banned_objects = typecacheof(/obj/structure/stone_tile)
+
+/datum/map_template/shelter/charlie
+	name = "Shelter Charlie"
+	shelter_id = "shelter_charlie"
+	description = "A luxury elite bar which holds an entire bar \
+		along with two vending machines, tables, and a restroom that \
+		also has a sink. This isn't a survival capsule and so you can \
+		expect that this won't save you if you're bleeding out to \
+		death."
+	mappath = "_maps/templates/shelter_3.dmm"
+
+/datum/map_template/shelter/charlie/New()
 	. = ..()
 	whitelisted_turfs = typecacheof(/turf/closed/mineral)
 	banned_objects = typecacheof(/obj/structure/stone_tile)

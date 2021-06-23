@@ -2,15 +2,17 @@
 	name = "Santa Claus"
 
 	uniform = /obj/item/clothing/under/color/red
-	shoes = /obj/item/clothing/shoes/sneakers/red
 	suit = /obj/item/clothing/suit/space/santa
-	head = /obj/item/clothing/head/santa
 	back = /obj/item/storage/backpack/santabag
-	mask = /obj/item/clothing/mask/breath
-	r_pocket = /obj/item/device/flashlight
+	backpack_contents = list(
+		/obj/item/a_gift/anything = 5,
+)
 	gloves = /obj/item/clothing/gloves/color/red
-	belt = /obj/item/tank/internals/emergency_oxygen/double
-	id = /obj/item/card/id/gold
+	head = /obj/item/clothing/head/santa
+	shoes = /obj/item/clothing/shoes/sneakers/red
+	r_pocket = /obj/item/flashlight
+
+	box = /obj/item/storage/box/survival/engineer
 
 /datum/outfit/santa/post_equip(mob/living/carbon/human/H, visualsOnly = FALSE)
 	if(visualsOnly)
@@ -19,13 +21,8 @@
 	H.mind.assigned_role = "Santa"
 	H.mind.special_role = "Santa"
 
-	H.hair_style = "Long Hair"
-	H.facial_hair_style = "Full Beard"
+	H.hairstyle = "Long Hair 3"
+	H.facial_hairstyle = "Beard (Full)"
 	H.hair_color = "FFF"
 	H.facial_hair_color = "FFF"
-
-	var/obj/item/storage/backpack/bag = H.back
-	var/obj/item/a_gift/gift = new(H)
-	while(bag.can_be_inserted(gift, 1))
-		bag.handle_item_insertion(gift, 1)
-		gift = new(H)
+	H.update_hair()

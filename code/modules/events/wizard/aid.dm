@@ -5,7 +5,7 @@
 	weight = 2
 	typepath = /datum/round_event/wizard/robelesscasting
 	max_occurrences = 1
-	earliest_start = 0
+	earliest_start = 0 MINUTES
 
 /datum/round_event/wizard/robelesscasting/start()
 
@@ -18,7 +18,7 @@
 					S.clothes_req = 0
 					spell_improved = TRUE
 			if(spell_improved)
-				to_chat(L, "<span class='notice'>You suddenly feel like you never needed those garish robes in the first place...</span>")
+				to_chat(L, span_notice("You suddenly feel like you never needed those garish robes in the first place..."))
 
 //--//
 
@@ -27,7 +27,7 @@
 	weight = 3
 	typepath = /datum/round_event/wizard/improvedcasting
 	max_occurrences = 4 //because that'd be max level spells
-	earliest_start = 0
+	earliest_start = 0 MINUTES
 
 /datum/round_event/wizard/improvedcasting/start()
 	for(var/i in GLOB.mob_living_list)
@@ -55,4 +55,4 @@
 					if(5)
 						S.name = "Ludicrous [S.name]"
 
-			to_chat(L, "<span class='notice'>You suddenly feel more competent with your casting!</span>")
+			to_chat(L, span_notice("You suddenly feel more competent with your casting!"))

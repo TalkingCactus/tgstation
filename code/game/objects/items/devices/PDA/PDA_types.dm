@@ -1,208 +1,255 @@
 //Clown PDA is slippery.
-/obj/item/device/pda/clown
+/obj/item/pda/clown
 	name = "clown PDA"
 	default_cartridge = /obj/item/cartridge/virus/clown
 	inserted_item = /obj/item/toy/crayon/rainbow
 	icon_state = "pda-clown"
+	greyscale_config = null
+	greyscale_config = null
 	desc = "A portable microcomputer by Thinktronic Systems, LTD. The surface is coated with polytetrafluoroethylene and banana drippings."
 	ttone = "honk"
 
-/obj/item/device/pda/clown/Initialize()
+/obj/item/pda/clown/ComponentInitialize()
 	. = ..()
-	AddComponent(/datum/component/slippery, 120, NO_SLIP_WHEN_WALKING, CALLBACK(src, .proc/AfterSlip))
+	AddComponent(/datum/component/slippery/clowning, 120, NO_SLIP_WHEN_WALKING, CALLBACK(src, .proc/AfterSlip), slot_whitelist = list(ITEM_SLOT_ID, ITEM_SLOT_BELT))
+	AddComponent(/datum/component/wearertargeting/sitcomlaughter, CALLBACK(src, .proc/after_sitcom_laugh))
 
-/obj/item/device/pda/clown/proc/AfterSlip(mob/living/carbon/human/M)
+/obj/item/pda/clown/proc/AfterSlip(mob/living/carbon/human/M)
 	if (istype(M) && (M.real_name != owner))
 		var/obj/item/cartridge/virus/clown/cart = cartridge
 		if(istype(cart) && cart.charges < 5)
 			cart.charges++
+			playsound(src,'sound/machines/ping.ogg',30,TRUE)
 
-// Special AI/pAI PDAs that cannot explode.
-/obj/item/device/pda/ai
-	icon_state = "NONE"
-	ttone = "data"
-	fon = 0
-	detonatable = FALSE
+/obj/item/pda/clown/proc/after_sitcom_laugh(mob/victim)
+	victim.visible_message("[src] lets out a burst of laughter!")
 
-/obj/item/device/pda/ai/attack_self(mob/user)
-	if ((honkamt > 0) && (prob(60)))//For clown virus.
-		honkamt--
-		playsound(loc, 'sound/items/bikehorn.ogg', 30, 1)
-	return
-
-/obj/item/device/pda/ai/pai
-	ttone = "assist"
-
-
-
-/obj/item/device/pda/medical
-	name = "medical PDA"
-	default_cartridge = /obj/item/cartridge/medical
-	icon_state = "pda-medical"
-
-/obj/item/device/pda/viro
-	name = "virology PDA"
-	default_cartridge = /obj/item/cartridge/medical
-	icon_state = "pda-virology"
-
-/obj/item/device/pda/engineering
-	name = "engineering PDA"
-	default_cartridge = /obj/item/cartridge/engineering
-	icon_state = "pda-engineer"
-
-/obj/item/device/pda/security
-	name = "security PDA"
-	default_cartridge = /obj/item/cartridge/security
-	icon_state = "pda-security"
-
-/obj/item/device/pda/detective
-	name = "detective PDA"
-	default_cartridge = /obj/item/cartridge/detective
-	icon_state = "pda-detective"
-
-/obj/item/device/pda/warden
-	name = "warden PDA"
-	default_cartridge = /obj/item/cartridge/security
-	icon_state = "pda-warden"
-
-/obj/item/device/pda/janitor
-	name = "janitor PDA"
-	default_cartridge = /obj/item/cartridge/janitor
-	icon_state = "pda-janitor"
-	ttone = "slip"
-
-/obj/item/device/pda/toxins
-	name = "scientist PDA"
-	default_cartridge = /obj/item/cartridge/signal/toxins
-	icon_state = "pda-science"
-	ttone = "boom"
-
-/obj/item/device/pda/mime
+//Mime PDA sends "silent" messages.
+/obj/item/pda/mime
 	name = "mime PDA"
 	default_cartridge = /obj/item/cartridge/virus/mime
 	inserted_item = /obj/item/toy/crayon/mime
-	icon_state = "pda-mime"
-	silent = 1
+	greyscale_config = /datum/greyscale_config/pda/mime
+	greyscale_colors = "#e2e2e2#cc4242"
+	desc = "A portable microcomputer by Thinktronic Systems, LTD. The hardware has been modified for compliance with the vows of silence."
+	allow_emojis = TRUE
+	silent = TRUE
 	ttone = "silence"
 
-/obj/item/device/pda/heads
-	default_cartridge = /obj/item/cartridge/head
-	icon_state = "pda-hop"
+/obj/item/pda/mime/msg_input(mob/living/U = usr)
+	if(emped || toff)
+		return
+	var/emojis = emoji_sanitize(stripped_input(U, "Please enter emojis", name))
+	if(!emojis)
+		return
+	if(!U.canUseTopic(src, BE_CLOSE))
+		return
+	return emojis
 
-/obj/item/device/pda/heads/hop
+// Special AI/pAI PDAs that cannot explode.
+/obj/item/pda/ai
+	icon = null
+	greyscale_config = null
+	greyscale_colors = null
+	ttone = "data"
+
+
+/obj/item/pda/ai/attack_self(mob/user)
+	if ((honkamt > 0) && (prob(60)))//For clown virus.
+		honkamt--
+		playsound(loc, 'sound/items/bikehorn.ogg', 30, TRUE)
+	return
+
+/obj/item/pda/ai/pai
+	ttone = "assist"
+
+/obj/item/pda/ai/Initialize()
+	. = ..()
+	RegisterSignal(src, COMSIG_PDA_CHECK_DETONATE, .proc/pda_no_detonate)
+
+/obj/item/pda/medical
+	name = "medical PDA"
+	default_cartridge = /obj/item/cartridge/medical
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#e2e2e2#000099#5d99be"
+
+/obj/item/pda/viro
+	name = "virology PDA"
+	default_cartridge = /obj/item/cartridge/medical
+	greyscale_config = /datum/greyscale_config/pda/stripe_split
+	greyscale_colors = "#e2e2e2#00cc00#789876"
+
+/obj/item/pda/engineering
+	name = "engineering PDA"
+	default_cartridge = /obj/item/cartridge/engineering
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#ceca2b#a92323#cc4242"
+
+/obj/item/pda/security
+	name = "security PDA"
+	default_cartridge = /obj/item/cartridge/security
+	greyscale_colors = "#cc4242#339900"
+
+/obj/item/pda/detective
+	name = "detective PDA"
+	default_cartridge = /obj/item/cartridge/detective
+	greyscale_colors = "#97670e#990202"
+
+/obj/item/pda/warden
+	name = "warden PDA"
+	default_cartridge = /obj/item/cartridge/security
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#cc4242#339900#cccc00"
+
+/obj/item/pda/janitor
+	name = "janitor PDA"
+	default_cartridge = /obj/item/cartridge/janitor
+	greyscale_colors = "#933ea8#a92323"
+	ttone = "slip"
+
+/obj/item/pda/toxins
+	name = "scientist PDA"
+	default_cartridge = /obj/item/cartridge/signal/toxins
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#e2e2e2#000099#9e00ea"
+	ttone = "boom"
+
+
+/obj/item/pda/heads
+	default_cartridge = /obj/item/cartridge/head
+	greyscale_config = /datum/greyscale_config/pda/head
+	greyscale_colors = "#789876#a92323"
+
+/obj/item/pda/heads/hop
 	name = "head of personnel PDA"
 	default_cartridge = /obj/item/cartridge/hop
-	icon_state = "pda-hop"
 
-/obj/item/device/pda/heads/hos
+/obj/item/pda/heads/hos
 	name = "head of security PDA"
 	default_cartridge = /obj/item/cartridge/hos
-	icon_state = "pda-hos"
+	greyscale_config = /datum/greyscale_config/pda/head
+	greyscale_colors = "#cc4242#339900"
 
-/obj/item/device/pda/heads/ce
+/obj/item/pda/heads/ce
 	name = "chief engineer PDA"
 	default_cartridge = /obj/item/cartridge/ce
-	icon_state = "pda-ce"
+	greyscale_colors = "#ceca2b#339900"
 
-/obj/item/device/pda/heads/cmo
+/obj/item/pda/heads/cmo
 	name = "chief medical officer PDA"
 	default_cartridge = /obj/item/cartridge/cmo
-	icon_state = "pda-cmo"
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick/head
+	greyscale_colors = "#e2e2e2#000099#5d99be"
 
-/obj/item/device/pda/heads/rd
+/obj/item/pda/heads/rd
 	name = "research director PDA"
 	default_cartridge = /obj/item/cartridge/rd
 	inserted_item = /obj/item/pen/fountain
-	icon_state = "pda-rd"
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick/head
+	greyscale_colors = "#e2e2e2#000099#9e00ea"
 
-/obj/item/device/pda/captain
+/obj/item/pda/captain
 	name = "captain PDA"
 	default_cartridge = /obj/item/cartridge/captain
 	inserted_item = /obj/item/pen/fountain/captain
-	icon_state = "pda-captain"
-	detonatable = FALSE
+	greyscale_colors = "#aa9100#0060b8"
 
-/obj/item/device/pda/cargo
+/obj/item/pda/captain/Initialize()
+	. = ..()
+	RegisterSignal(src, COMSIG_PDA_CHECK_DETONATE, .proc/pda_no_detonate)
+
+/obj/item/pda/cargo
 	name = "cargo technician PDA"
 	default_cartridge = /obj/item/cartridge/quartermaster
-	icon_state = "pda-cargo"
+	greyscale_colors = "#e39751#a92323"
 
-/obj/item/device/pda/quartermaster
+/obj/item/pda/quartermaster
 	name = "quartermaster PDA"
 	default_cartridge = /obj/item/cartridge/quartermaster
 	inserted_item = /obj/item/pen/fountain
-	icon_state = "pda-qm"
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#e39751#a92323#a23e3e"
 
-/obj/item/device/pda/shaftminer
+/obj/item/pda/shaftminer
 	name = "shaft miner PDA"
-	icon_state = "pda-miner"
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#af9366#8f36c6#8f36c6"
 
-/obj/item/device/pda/syndicate
+/obj/item/pda/syndicate
 	default_cartridge = /obj/item/cartridge/virus/syndicate
-	icon_state = "pda-syndi"
+	greyscale_colors = "#891417#000099"
 	name = "military PDA"
 	owner = "John Doe"
 	hidden = 1
 
-/obj/item/device/pda/chaplain
+/obj/item/pda/chaplain
 	name = "chaplain PDA"
-	icon_state = "pda-chaplain"
+	greyscale_config = /datum/greyscale_config/pda/chaplain
+	greyscale_colors = "#333333#000099"
 	ttone = "holy"
 
-/obj/item/device/pda/lawyer
+/obj/item/pda/lawyer
 	name = "lawyer PDA"
 	default_cartridge = /obj/item/cartridge/lawyer
 	inserted_item = /obj/item/pen/fountain
-	icon_state = "pda-lawyer"
+	greyscale_colors = "#6f6192#f7e062"
 	ttone = "objection"
 
-/obj/item/device/pda/botanist
+/obj/item/pda/botanist
 	name = "botanist PDA"
-	//default_cartridge = /obj/item/cartridge/botanist
-	icon_state = "pda-hydro"
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#44843c#e29652#00cc35"
 
-/obj/item/device/pda/roboticist
+/obj/item/pda/roboticist
 	name = "roboticist PDA"
-	icon_state = "pda-roboticist"
+	greyscale_config = /datum/greyscale_config/pda/stripe_split
+	greyscale_colors = "#484848#8b2400#d33725"
 	default_cartridge = /obj/item/cartridge/roboticist
 
-/obj/item/device/pda/curator
+/obj/item/pda/curator
 	name = "curator PDA"
+	greyscale_config = null
+	greyscale_colors = null
 	icon_state = "pda-library"
 	icon_alert = "pda-r-library"
 	default_cartridge = /obj/item/cartridge/curator
 	inserted_item = /obj/item/pen/fountain
 	desc = "A portable microcomputer by Thinktronic Systems, LTD. This model is a WGW-11 series e-reader."
 	note = "Congratulations, your station has chosen the Thinktronic 5290 WGW-11 Series E-reader and Personal Data Assistant!"
-	silent = 1 //Quiet in the library!
+	silent = TRUE //Quiet in the library!
 	overlays_x_offset = -3
 
-/obj/item/device/pda/clear
+/obj/item/pda/clear
 	name = "clear PDA"
 	icon_state = "pda-clear"
+	greyscale_config = null
+	greyscale_colors = null
 	desc = "A portable microcomputer by Thinktronic Systems, LTD. This model is a special edition with a transparent case."
 	note = "Congratulations, you have chosen the Thinktronic 5230 Personal Data Assistant Deluxe Special Max Turbo Limited Edition!"
 
-/obj/item/device/pda/cook
+/obj/item/pda/cook
 	name = "cook PDA"
-	icon_state = "pda-cook"
+	greyscale_colors = "#e2e2e2#a92323"
 
-/obj/item/device/pda/bar
+/obj/item/pda/bar
 	name = "bartender PDA"
-	icon_state = "pda-bartender"
+	greyscale_colors = "#333333#c7c7c7"
 	inserted_item = /obj/item/pen/fountain
 
-/obj/item/device/pda/atmos
+/obj/item/pda/atmos
 	name = "atmospherics PDA"
 	default_cartridge = /obj/item/cartridge/atmos
-	icon_state = "pda-atmos"
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#ceca2b#a92323#3c94c5"
 
-/obj/item/device/pda/chemist
+/obj/item/pda/chemist
 	name = "chemist PDA"
 	default_cartridge = /obj/item/cartridge/chemistry
-	icon_state = "pda-chemistry"
+	greyscale_config = /datum/greyscale_config/pda/stripe_thick
+	greyscale_colors = "#e2e2e2#a92323#ea6400"
 
-/obj/item/device/pda/geneticist
+/obj/item/pda/geneticist
 	name = "geneticist PDA"
 	default_cartridge = /obj/item/cartridge/medical
-	icon_state = "pda-genetics"
+	greyscale_config = /datum/greyscale_config/pda/stripe_split
+	greyscale_colors = "#e2e2e2#000099#0097ca"

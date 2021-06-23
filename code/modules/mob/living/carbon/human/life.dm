@@ -2,100 +2,108 @@
 
 //NOTE: Breathing happens once per FOUR TICKS, unless the last breath fails. In which case it happens once per ONE TICK! So oxyloss healing is done once per 4 ticks while oxyloss damage is applied once per tick!
 
+// bitflags for the percentual amount of protection a piece of clothing which covers the body part offers.
+// Used with human/proc/get_heat_protection() and human/proc/get_cold_protection()
+// The values here should add up to 1.
+// Hands and feet have 2.5%, arms and legs 7.5%, each of the torso parts has 15% and the head has 30%
+#define THERMAL_PROTECTION_HEAD 0.3
+#define THERMAL_PROTECTION_CHEST 0.15
+#define THERMAL_PROTECTION_GROIN 0.15
+#define THERMAL_PROTECTION_LEG_LEFT 0.075
+#define THERMAL_PROTECTION_LEG_RIGHT 0.075
+#define THERMAL_PROTECTION_FOOT_LEFT 0.025
+#define THERMAL_PROTECTION_FOOT_RIGHT 0.025
+#define THERMAL_PROTECTION_ARM_LEFT 0.075
+#define THERMAL_PROTECTION_ARM_RIGHT 0.075
+#define THERMAL_PROTECTION_HAND_LEFT 0.025
+#define THERMAL_PROTECTION_HAND_RIGHT 0.025
 
-#define HEAT_DAMAGE_LEVEL_1 2 //Amount of damage applied when your body temperature just passes the 360.15k safety point
-#define HEAT_DAMAGE_LEVEL_2 3 //Amount of damage applied when your body temperature passes the 400K point
-#define HEAT_DAMAGE_LEVEL_3 10 //Amount of damage applied when your body temperature passes the 460K point and you are on fire
-
-#define COLD_DAMAGE_LEVEL_1 0.5 //Amount of damage applied when your body temperature just passes the 260.15k safety point
-#define COLD_DAMAGE_LEVEL_2 1.5 //Amount of damage applied when your body temperature passes the 200K point
-#define COLD_DAMAGE_LEVEL_3 3 //Amount of damage applied when your body temperature passes the 120K point
-
-//Note that gas heat damage is only applied once every FOUR ticks.
-#define HEAT_GAS_DAMAGE_LEVEL_1 2 //Amount of damage applied when the current breath's temperature just passes the 360.15k safety point
-#define HEAT_GAS_DAMAGE_LEVEL_2 4 //Amount of damage applied when the current breath's temperature passes the 400K point
-#define HEAT_GAS_DAMAGE_LEVEL_3 8 //Amount of damage applied when the current breath's temperature passes the 1000K point
-
-#define COLD_GAS_DAMAGE_LEVEL_1 0.5 //Amount of damage applied when the current breath's temperature just passes the 260.15k safety point
-#define COLD_GAS_DAMAGE_LEVEL_2 1.5 //Amount of damage applied when the current breath's temperature passes the 200K point
-#define COLD_GAS_DAMAGE_LEVEL_3 3 //Amount of damage applied when the current breath's temperature passes the 120K point
-
-/mob/living/carbon/human/Life()
-	set invisibility = 0
-	if (notransform)
+/mob/living/carbon/human/Life(delta_time = SSMOBS_DT, times_fired)
+	if(notransform)
 		return
 
-	if(..()) //not dead
-		handle_active_genes()
+	. = ..()
+	if(QDELETED(src))
+		return FALSE
 
-	if(stat != DEAD)
-		//heart attack stuff
-		handle_heart()
+	//Body temperature stability and damage
+	dna.species.handle_body_temperature(src, delta_time, times_fired)
 
-	if(stat != DEAD)
-		//Stuff jammed in your limbs hurts
-		handle_embedded_objects()
+	if(!IS_IN_STASIS(src))
+		if(.) //not dead
+
+			for(var/datum/mutation/human/HM in dna.mutations) // Handle active genes
+				HM.on_life(delta_time, times_fired)
+
+		if(stat != DEAD)
+			//heart attack stuff
+			handle_heart(delta_time, times_fired)
+			handle_liver(delta_time, times_fired)
+
+		dna.species.spec_life(src, delta_time, times_fired) // for mutantraces
+	else
+		for(var/i in all_wounds)
+			var/datum/wound/iter_wound = i
+			iter_wound.on_stasis(delta_time, times_fired)
 
 	//Update our name based on whether our face is obscured/disfigured
 	name = get_visible_name()
 
-	dna.species.spec_life(src) // for mutantraces
-
 	if(stat != DEAD)
-		return 1
+		return TRUE
 
 
 /mob/living/carbon/human/calculate_affecting_pressure(pressure)
-	if((wear_suit && (wear_suit.flags_1 & STOPSPRESSUREDMAGE_1)) && (head && (head.flags_1 & STOPSPRESSUREDMAGE_1)))
+	var/chest_covered = FALSE
+	var/head_covered = FALSE
+	for(var/obj/item/clothing/equipped in get_equipped_items())
+		if((equipped.body_parts_covered & CHEST) && (equipped.clothing_flags & STOPSPRESSUREDAMAGE))
+			chest_covered = TRUE
+		if((equipped.body_parts_covered & HEAD) && (equipped.clothing_flags & STOPSPRESSUREDAMAGE))
+			head_covered = TRUE
+
+	if(chest_covered && head_covered)
 		return ONE_ATMOSPHERE
+	return pressure
+
+
+/mob/living/carbon/human/handle_traits(delta_time, times_fired)
+	if (getOrganLoss(ORGAN_SLOT_BRAIN) >= 60)
+		SEND_SIGNAL(src, COMSIG_ADD_MOOD_EVENT, "brain_damage", /datum/mood_event/brain_damage)
 	else
-		return pressure
+		SEND_SIGNAL(src, COMSIG_CLEAR_MOOD_EVENT, "brain_damage")
+	return ..()
 
-
-/mob/living/carbon/human/handle_traits()
-	if(eye_blind)			//blindness, heals slowly over time
-		if(tinttotal >= TINT_BLIND) //covering your eyes heals blurry eyes faster
-			adjust_blindness(-3)
-		else
-			adjust_blindness(-1)
-	else if(eye_blurry)			//blurry eyes heal slowly
-		adjust_blurriness(-1)
-
-	if(has_trait(TRAIT_PACIFISM) && a_intent == INTENT_HARM)
-		to_chat(src, "<span class='notice'>You don't feel like harming anybody.</span>")
-		a_intent_change(INTENT_HELP)
-
-/mob/living/carbon/human/handle_mutations_and_radiation()
-	if(!dna || !dna.species.handle_mutations_and_radiation(src))
+/mob/living/carbon/human/handle_mutations_and_radiation(delta_time, times_fired)
+	if(!dna || !dna.species.handle_mutations_and_radiation(src, delta_time, times_fired))
 		..()
 
 /mob/living/carbon/human/breathe()
 	if(!dna.species.breathe(src))
 		..()
-#define HUMAN_MAX_OXYLOSS 3
-#define HUMAN_CRIT_MAX_OXYLOSS (SSmobs.wait/30)
+
 /mob/living/carbon/human/check_breath(datum/gas_mixture/breath)
 
 	var/L = getorganslot(ORGAN_SLOT_LUNGS)
 
 	if(!L)
-		if(health >= HEALTH_THRESHOLD_CRIT)
+		if(health >= crit_threshold)
 			adjustOxyLoss(HUMAN_MAX_OXYLOSS + 1)
-		else if(!(NOCRITDAMAGE in dna.species.species_traits))
+		else if(!HAS_TRAIT(src, TRAIT_NOCRITDAMAGE))
 			adjustOxyLoss(HUMAN_CRIT_MAX_OXYLOSS)
 
-		failed_last_breath = 1
+		failed_last_breath = TRUE
 
 		var/datum/species/S = dna.species
 
 		if(S.breathid == "o2")
-			throw_alert("not_enough_oxy", /obj/screen/alert/not_enough_oxy)
+			throw_alert("not_enough_oxy", /atom/movable/screen/alert/not_enough_oxy)
 		else if(S.breathid == "tox")
-			throw_alert("not_enough_tox", /obj/screen/alert/not_enough_tox)
+			throw_alert("not_enough_tox", /atom/movable/screen/alert/not_enough_tox)
 		else if(S.breathid == "co2")
-			throw_alert("not_enough_co2", /obj/screen/alert/not_enough_co2)
+			throw_alert("not_enough_co2", /atom/movable/screen/alert/not_enough_co2)
 		else if(S.breathid == "n2")
-			throw_alert("not_enough_nitro", /obj/screen/alert/not_enough_nitro)
+			throw_alert("not_enough_nitro", /atom/movable/screen/alert/not_enough_nitro)
 
 		return FALSE
 	else
@@ -103,17 +111,64 @@
 			var/obj/item/organ/lungs/lun = L
 			lun.check_breath(breath,src)
 
-#undef HUMAN_MAX_OXYLOSS
-#undef HUMAN_CRIT_MAX_OXYLOSS
+/// Environment handlers for species
+/mob/living/carbon/human/handle_environment(datum/gas_mixture/environment, delta_time, times_fired)
+	// If we are in a cryo bed do not process life functions
+	if(istype(loc, /obj/machinery/atmospherics/components/unary/cryo_cell))
+		return
 
-/mob/living/carbon/human/handle_environment(datum/gas_mixture/environment)
-	dna.species.handle_environment(environment, src)
+	dna.species.handle_environment(src, environment, delta_time, times_fired)
+
+/**
+ * Adjust the core temperature of a mob
+ *
+ * vars:
+ * * amount The amount of degrees to change body temperature by
+ * * min_temp (optional) The minimum body temperature after adjustment
+ * * max_temp (optional) The maximum body temperature after adjustment
+ */
+/mob/living/carbon/human/proc/adjust_coretemperature(amount, min_temp=0, max_temp=INFINITY)
+	set_coretemperature(clamp(coretemperature + amount, min_temp, max_temp))
+
+/mob/living/carbon/human/proc/set_coretemperature(value)
+	SEND_SIGNAL(src, COMSIG_HUMAN_CORETEMP_CHANGE, coretemperature, value)
+	coretemperature = value
+
+/**
+ * get_body_temperature Returns the body temperature with any modifications applied
+ *
+ * This applies the result from proc/get_body_temp_normal_change() against the bodytemp_normal
+ * for the species and returns the result
+ *
+ * arguments:
+ * * apply_change (optional) Default True This applies the changes to body temperature normal
+ */
+/mob/living/carbon/human/get_body_temp_normal(apply_change=TRUE)
+	if(!apply_change)
+		return dna.species.bodytemp_normal
+	return dna.species.bodytemp_normal + get_body_temp_normal_change()
+
+/mob/living/carbon/human/get_body_temp_heat_damage_limit()
+	return dna.species.bodytemp_heat_damage_limit
+
+/mob/living/carbon/human/get_body_temp_cold_damage_limit()
+	return dna.species.bodytemp_cold_damage_limit
 
 ///FIRE CODE
-/mob/living/carbon/human/handle_fire()
-	..()
+/mob/living/carbon/human/handle_fire(delta_time, times_fired)
+	. = ..()
+	if(.) //if the mob isn't on fire anymore
+		return
+
 	if(dna)
-		dna.species.handle_fire(src)
+		. = dna.species.handle_fire(src, delta_time, times_fired) //do special handling based on the mob's species. TRUE = they are immune to the effects of the fire.
+
+	if(!last_fire_update)
+		last_fire_update = fire_stacks
+	if((fire_stacks > HUMAN_FIRE_STACK_ICON_NUM && last_fire_update <= HUMAN_FIRE_STACK_ICON_NUM) || (fire_stacks <= HUMAN_FIRE_STACK_ICON_NUM && last_fire_update > HUMAN_FIRE_STACK_ICON_NUM))
+		last_fire_update = fire_stacks
+		update_fire()
+
 
 /mob/living/carbon/human/proc/get_thermal_protection()
 	var/thermal_protection = 0 //Simple check to estimate how protected we are against multiple temperatures
@@ -133,8 +188,9 @@
 		return ..()
 	. = FALSE //No ignition
 
-/mob/living/carbon/human/ExtinguishMob()
-	if(!dna || !dna.species.ExtinguishMob(src))
+/mob/living/carbon/human/extinguish_mob()
+	if(!dna || !dna.species.extinguish_mob(src))
+		last_fire_update = null
 		..()
 //END FIRE CODE
 
@@ -164,10 +220,11 @@
 
 	return thermal_protection_flags
 
-/mob/living/carbon/human/proc/get_heat_protection(temperature) //Temperature is the temperature you're being exposed to.
+/mob/living/carbon/human/get_heat_protection(temperature)
 	var/thermal_protection_flags = get_heat_protection_flags(temperature)
+	var/thermal_protection = heat_protection
 
-	var/thermal_protection = 0
+	// Apply clothing items protection
 	if(thermal_protection_flags)
 		if(thermal_protection_flags & HEAD)
 			thermal_protection += THERMAL_PROTECTION_HEAD
@@ -192,8 +249,7 @@
 		if(thermal_protection_flags & HAND_RIGHT)
 			thermal_protection += THERMAL_PROTECTION_HAND_RIGHT
 
-
-	return min(1,thermal_protection)
+	return min(1, thermal_protection)
 
 //See proc/get_heat_protection_flags(temperature) for the description of this proc.
 /mob/living/carbon/human/proc/get_cold_protection_flags(temperature)
@@ -221,18 +277,15 @@
 
 	return thermal_protection_flags
 
-/mob/living/carbon/human/proc/get_cold_protection(temperature)
-
-	if(dna.check_mutation(COLDRES))
-		return TRUE //Fully protected from the cold.
-
-	if(RESISTCOLD in dna.species.species_traits)
-		return TRUE
-
-	temperature = max(temperature, 2.7) //There is an occasional bug where the temperature is miscalculated in ares with a small amount of gas on them, so this is necessary to ensure that that bug does not affect this calculation. Space's temperature is 2.7K and most suits that are intended to protect against any cold, protect down to 2.0K.
+/mob/living/carbon/human/get_cold_protection(temperature)
+	// There is an occasional bug where the temperature is miscalculated in areas with small amounts of gas.
+	// This is necessary to ensure that does not affect this calculation.
+	// Space's temperature is 2.7K and most suits that are intended to protect against any cold, protect down to 2.0K.
+	temperature = max(temperature, 2.7)
 	var/thermal_protection_flags = get_cold_protection_flags(temperature)
+	var/thermal_protection = cold_protection
 
-	var/thermal_protection = 0
+	// Apply clothing items protection
 	if(thermal_protection_flags)
 		if(thermal_protection_flags & HEAD)
 			thermal_protection += THERMAL_PROTECTION_HEAD
@@ -257,163 +310,54 @@
 		if(thermal_protection_flags & HAND_RIGHT)
 			thermal_protection += THERMAL_PROTECTION_HAND_RIGHT
 
-	return min(1,thermal_protection)
+	return min(1, thermal_protection)
 
-/mob/living/carbon/human/handle_random_events()
+/mob/living/carbon/human/handle_random_events(delta_time, times_fired)
 	//Puke if toxloss is too high
-	if(!stat)
-		if(getToxLoss() >= 45 && nutrition > 20)
-			lastpuke += prob(50)
-			if(lastpuke >= 50) // about 25 second delay I guess
-				vomit(20, toxic = TRUE)
-				lastpuke = 0
+	if(stat)
+		return
+	if(getToxLoss() < 45 || nutrition <= 20)
+		return
+
+	lastpuke += DT_PROB(30, delta_time)
+	if(lastpuke >= 50) // about 25 second delay I guess // This is actually closer to 150 seconds
+		vomit(20)
+		lastpuke = 0
 
 
 /mob/living/carbon/human/has_smoke_protection()
-	if(wear_mask)
-		if(wear_mask.flags_1 & BLOCK_GAS_SMOKE_EFFECT_1)
-			. = 1
-	if(glasses)
-		if(glasses.flags_1 & BLOCK_GAS_SMOKE_EFFECT_1)
-			. = 1
-	if(head)
-		if(head.flags_1 & BLOCK_GAS_SMOKE_EFFECT_1)
-			. = 1
-	if(NOBREATH in dna.species.species_traits)
-		. = 1
-	return .
+	if(isclothing(wear_mask))
+		if(wear_mask.clothing_flags & BLOCK_GAS_SMOKE_EFFECT)
+			return TRUE
+	if(isclothing(glasses))
+		if(glasses.clothing_flags & BLOCK_GAS_SMOKE_EFFECT)
+			return TRUE
+	if(isclothing(head))
+		var/obj/item/clothing/CH = head
+		if(CH.clothing_flags & BLOCK_GAS_SMOKE_EFFECT)
+			return TRUE
+	return ..()
 
-
-/mob/living/carbon/human/proc/handle_embedded_objects()
-	for(var/X in bodyparts)
-		var/obj/item/bodypart/BP = X
-		for(var/obj/item/I in BP.embedded_objects)
-			if(prob(I.embedding.embedded_pain_chance))
-				BP.receive_damage(I.w_class*I.embedding.embedded_pain_multiplier)
-				to_chat(src, "<span class='userdanger'>[I] embedded in your [BP.name] hurts!</span>")
-
-			if(prob(I.embedding.embedded_fall_chance))
-				BP.receive_damage(I.w_class*I.embedding.embedded_fall_pain_multiplier)
-				BP.embedded_objects -= I
-				I.forceMove(drop_location())
-				visible_message("<span class='danger'>[I] falls out of [name]'s [BP.name]!</span>","<span class='userdanger'>[I] falls out of your [BP.name]!</span>")
-				if(!has_embedded_objects())
-					clear_alert("embeddedobject")
-
-/mob/living/carbon/human/proc/handle_active_genes()
-	for(var/datum/mutation/human/HM in dna.mutations)
-		HM.on_life(src)
-
-/mob/living/carbon/human/proc/handle_heart()
-	if(!can_heartattack())
-		return
-
-	var/we_breath = (!(NOBREATH in dna.species.species_traits))
-
+/mob/living/carbon/human/proc/handle_heart(delta_time, times_fired)
+	var/we_breath = !HAS_TRAIT_FROM(src, TRAIT_NOBREATH, SPECIES_TRAIT)
 
 	if(!undergoing_cardiac_arrest())
 		return
 
-	// Cardiac arrest, unless corazone
-	if(reagents.get_reagent_amount("corazone"))
-		return
-
 	if(we_breath)
-		adjustOxyLoss(8)
+		adjustOxyLoss(4 * delta_time)
 		Unconscious(80)
 	// Tissues die without blood circulation
-	adjustBruteLoss(2)
+	adjustBruteLoss(1 * delta_time)
 
-/*
-Alcohol Poisoning Chart
-Note that all higher effects of alcohol poisoning will inherit effects for smaller amounts (i.e. light poisoning inherts from slight poisoning)
-In addition, severe effects won't always trigger unless the drink is poisonously strong
-All effects don't start immediately, but rather get worse over time; the rate is affected by the imbiber's alcohol tolerance
-
-0: Non-alcoholic
-1-10: Barely classifiable as alcohol - occassional slurring
-11-20: Slight alcohol content - slurring
-21-30: Below average - imbiber begins to look slightly drunk
-31-40: Just below average - no unique effects
-41-50: Average - mild disorientation, imbiber begins to look drunk
-51-60: Just above average - disorientation, vomiting, imbiber begins to look heavily drunk
-61-70: Above average - small chance of blurry vision, imbiber begins to look smashed
-71-80: High alcohol content - blurry vision, imbiber completely shitfaced
-81-90: Extremely high alcohol content - light brain damage, passing out
-91-100: Dangerously toxic - swift death
-*/
-#define BALLMER_POINTS 5
-GLOBAL_LIST_INIT(ballmer_good_msg, list("Hey guys, what if we rolled out a bluespace wiring system so mice can't destroy the powergrid anymore?",
-										"Hear me out here. What if, and this is just a theory, we made R&D controllable from our PDAs?",
-										"I'm thinking we should roll out a git repository for our research under the AGPLv3 license so that we can share it among the other stations freely.",
-										"I dunno about you guys, but IDs and PDAs being separate is clunky as fuck. Maybe we should merge them into a chip in our arms? That way they can't be stolen easily.",
-										"Why the fuck aren't we just making every pair of shoes into galoshes? We have the technology."))
-GLOBAL_LIST_INIT(ballmer_windows_me_msg, list("Yo man, what if, we like, uh, put a webserver that's automatically turned on with default admin passwords into every PDA?",
-												"So like, you know how we separate our codebase from the master copy that runs on our consumer boxes? What if we merged the two and undid the separation between codebase and server?",
-												"Dude, radical idea: H.O.N.K mechs but with no bananium required.",
-												"Best idea ever: Disposal pipes instead of hallways."))
-/mob/living/carbon/human/handle_status_effects()
-	..()
-
-
-	if(drunkenness)
-		drunkenness = max(drunkenness - (drunkenness * 0.04), 0)
-		if(drunkenness >= 6)
-			if(prob(25))
-				slurring += 2
-			jitteriness = max(jitteriness - 3, 0)
-
-		if(drunkenness >= 11 && slurring < 5)
-			slurring += 1.2
-		if(mind && (mind.assigned_role == "Scientist" || mind.assigned_role == "Research Director"))
-			if(SSresearch.science_tech)
-				if(drunkenness >= 12.9 && drunkenness <= 13.8)
-					drunkenness = round(drunkenness, 0.01)
-					var/ballmer_percent = 0
-					if(drunkenness == 13.35) // why run math if I dont have to
-						ballmer_percent = 1
-					else
-						ballmer_percent = (-abs(drunkenness - 13.35) / 0.9) + 1
-					if(prob(5))
-						say(pick(GLOB.ballmer_good_msg))
-					SSresearch.science_tech.research_points += (BALLMER_POINTS * ballmer_percent)
-				if(drunkenness > 26) // by this point you're into windows ME territory
-					if(prob(5))
-						SSresearch.science_tech.research_points -= BALLMER_POINTS
-						say(pick(GLOB.ballmer_windows_me_msg))
-		if(drunkenness >= 41)
-			if(prob(25))
-				confused += 2
-			Dizzy(10)
-
-		if(drunkenness >= 51)
-			if(prob(5))
-				confused += 10
-				vomit()
-			Dizzy(25)
-
-		if(drunkenness >= 61)
-			if(prob(50))
-				blur_eyes(5)
-
-		if(drunkenness >= 71)
-			blur_eyes(5)
-
-		if(drunkenness >= 81)
-			adjustToxLoss(0.2)
-			if(prob(5) && !stat)
-				to_chat(src, "<span class='warning'>Maybe you should lie down for a bit...</span>")
-
-		if(drunkenness >= 91)
-			adjustBrainLoss(0.4, 60)
-			if(prob(20) && !stat)
-				if(SSshuttle.emergency.mode == SHUTTLE_DOCKED && is_station_level(z)) //QoL mainly
-					to_chat(src, "<span class='warning'>You're so tired... but you can't miss that shuttle...</span>")
-				else
-					to_chat(src, "<span class='warning'>Just a quick nap...</span>")
-					Sleeping(900)
-
-		if(drunkenness >= 101)
-			adjustToxLoss(4) //Let's be honest you shouldn't be alive by now
-
-#undef HUMAN_MAX_OXYLOSS
+#undef THERMAL_PROTECTION_HEAD
+#undef THERMAL_PROTECTION_CHEST
+#undef THERMAL_PROTECTION_GROIN
+#undef THERMAL_PROTECTION_LEG_LEFT
+#undef THERMAL_PROTECTION_LEG_RIGHT
+#undef THERMAL_PROTECTION_FOOT_LEFT
+#undef THERMAL_PROTECTION_FOOT_RIGHT
+#undef THERMAL_PROTECTION_ARM_LEFT
+#undef THERMAL_PROTECTION_ARM_RIGHT
+#undef THERMAL_PROTECTION_HAND_LEFT
+#undef THERMAL_PROTECTION_HAND_RIGHT

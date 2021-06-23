@@ -44,7 +44,6 @@
 /obj/structure/alien/weeds,
 /obj/structure/bed/nest,
 /obj/effect/decal/cleanable/blood/gibs,
-/obj/item/clothing/mask/facehugger/impregnated,
 /obj/item/gun/ballistic/automatic/pistol,
 /turf/open/floor/plating/asteroid/basalt/lava_land_surface,
 /area/ruin/unpowered/xenonest)
@@ -52,11 +51,6 @@
 /obj/structure/alien/weeds,
 /obj/structure/alien/resin/wall,
 /obj/structure/alien/resin/wall,
-/turf/open/floor/plating/asteroid/basalt/lava_land_surface,
-/area/ruin/unpowered/xenonest)
-"s" = (
-/obj/structure/alien/weeds,
-/obj/structure/alien/egg,
 /turf/open/floor/plating/asteroid/basalt/lava_land_surface,
 /area/ruin/unpowered/xenonest)
 "t" = (
@@ -74,6 +68,12 @@
 /obj/effect/decal/cleanable/blood,
 /turf/open/floor/plating/asteroid/basalt/lava_land_surface,
 /area/ruin/unpowered/xenonest)
+"w" = (
+/obj/structure/alien/weeds,
+/obj/structure/bed/nest,
+/obj/structure/alien/resin/wall,
+/turf/open/floor/plating/asteroid/basalt/lava_land_surface,
+/area/ruin/unpowered/xenonest)
 "y" = (
 /obj/structure/alien/weeds/node,
 /obj/structure/alien/resin/wall,
@@ -83,8 +83,7 @@
 /obj/structure/alien/weeds,
 /obj/structure/bed/nest,
 /obj/effect/decal/cleanable/blood/gibs,
-/obj/item/clothing/mask/facehugger/impregnated,
-/obj/item/clothing/under/rank/security,
+/obj/item/clothing/under/rank/security/officer,
 /obj/item/clothing/suit/armor/vest,
 /obj/item/melee/baton/loaded,
 /obj/item/clothing/head/helmet,
@@ -119,6 +118,9 @@
 	},
 /turf/open/floor/plating/asteroid/basalt/lava_land_surface,
 /area/ruin/unpowered/xenonest)
+"G" = (
+/turf/open/lava/smooth/lava_land_surface,
+/area/lavaland/surface/outdoors)
 "H" = (
 /obj/structure/alien/weeds,
 /obj/effect/decal/cleanable/blood,
@@ -129,7 +131,6 @@
 /obj/structure/bed/nest,
 /obj/effect/decal/cleanable/blood/gibs,
 /obj/effect/decal/cleanable/blood,
-/obj/item/clothing/mask/facehugger/impregnated,
 /obj/item/clothing/under/syndicate,
 /obj/item/clothing/glasses/night,
 /turf/open/floor/plating/asteroid/basalt/lava_land_surface,
@@ -154,12 +155,7 @@
 /obj/item/clothing/suit/space/syndicate/orange,
 /obj/item/clothing/mask/gas,
 /obj/item/clothing/head/helmet/space/syndicate/orange,
-/obj/item/clothing/mask/facehugger/impregnated,
 /turf/open/floor/plating/asteroid/basalt/lava_land_surface,
-/area/ruin/unpowered/xenonest)
-"O" = (
-/obj/structure/alien/weeds/node,
-/turf/template_noop,
 /area/ruin/unpowered/xenonest)
 "Q" = (
 /obj/structure/alien/weeds,
@@ -169,25 +165,30 @@
 	},
 /turf/open/floor/plating/asteroid/basalt/lava_land_surface,
 /area/ruin/unpowered/xenonest)
-"R" = (
+"Y" = (
 /obj/structure/alien/weeds,
-/turf/template_noop,
+/obj/structure/alien/resin/wall{
+	move_force = 1000;
+	move_resist = 3000;
+	pull_force = 1000
+	},
+/turf/open/floor/plating/asteroid/basalt/lava_land_surface,
 /area/ruin/unpowered/xenonest)
 
 (1,1,1) = {"
 a
 a
 a
-a
-a
-a
-b
-b
-b
-b
-a
-a
-a
+G
+G
+G
+G
+G
+G
+G
+G
+G
+G
 a
 a
 a
@@ -210,17 +211,17 @@ a
 a
 a
 a
-a
+G
 b
 b
 b
-s
-e
 b
 b
 b
-a
-a
+b
+b
+G
+G
 a
 a
 a
@@ -241,18 +242,18 @@ a
 (3,1,1) = {"
 a
 a
-a
-a
+G
+G
 b
 g
 e
 e
+b
 g
-s
 g
 b
-b
-a
+Y
+G
 a
 a
 a
@@ -273,18 +274,18 @@ a
 (4,1,1) = {"
 a
 a
-a
+G
 b
 b
-s
 g
 g
-s
+g
+g
 E
 g
 e
 b
-a
+G
 a
 a
 a
@@ -305,18 +306,18 @@ a
 (5,1,1) = {"
 a
 a
-a
+G
 b
 g
 g
 y
-i
-g
-g
-y
-g
 b
-a
+b
+b
+y
+b
+b
+G
 a
 a
 a
@@ -337,18 +338,18 @@ a
 (6,1,1) = {"
 a
 a
-a
+G
 b
 g
 g
-i
+w
 g
 F
 u
 I
-H
 b
-a
+b
+G
 a
 a
 a
@@ -369,7 +370,7 @@ a
 (7,1,1) = {"
 a
 a
-a
+G
 b
 e
 t
@@ -380,7 +381,7 @@ H
 u
 g
 b
-a
+G
 a
 a
 a
@@ -401,18 +402,18 @@ a
 (8,1,1) = {"
 a
 a
-a
+G
 b
 i
 u
-g
+b
 g
 l
 g
 t
 e
 b
-a
+G
 a
 a
 a
@@ -433,18 +434,18 @@ a
 (9,1,1) = {"
 a
 a
-a
+G
 b
 o
 v
 g
-g
+b
 g
 g
 e
-g
 b
-a
+b
+G
 a
 a
 a
@@ -465,7 +466,7 @@ a
 (10,1,1) = {"
 a
 a
-a
+G
 b
 g
 u
@@ -476,7 +477,7 @@ g
 y
 e
 b
-a
+G
 a
 a
 a
@@ -497,18 +498,18 @@ a
 (11,1,1) = {"
 a
 a
-a
+G
 b
 b
 g
+t
 g
 g
-g
-g
+t
 g
 g
 b
-a
+G
 a
 a
 a
@@ -529,8 +530,8 @@ a
 (12,1,1) = {"
 a
 a
-a
-a
+G
+G
 b
 e
 g
@@ -540,7 +541,7 @@ g
 g
 g
 b
-a
+G
 a
 a
 a
@@ -562,7 +563,7 @@ b
 a
 a
 a
-a
+G
 b
 b
 g
@@ -572,7 +573,7 @@ g
 g
 b
 b
-a
+G
 a
 a
 a
@@ -594,8 +595,8 @@ b
 a
 a
 a
-a
-a
+G
+G
 b
 b
 g
@@ -603,8 +604,8 @@ g
 g
 b
 b
-a
-a
+G
+G
 a
 a
 a
@@ -627,15 +628,15 @@ a
 a
 a
 a
-a
-a
+G
+G
 b
 b
 b
 b
 b
-a
-a
+G
+G
 a
 a
 a
@@ -660,13 +661,13 @@ a
 a
 a
 a
-a
+G
 b
 l
 l
 b
-a
-a
+G
+G
 a
 a
 a
@@ -694,11 +695,11 @@ a
 a
 a
 b
-g
+E
 g
 b
 b
-a
+G
 b
 b
 b
@@ -728,7 +729,7 @@ a
 b
 g
 g
-g
+E
 b
 b
 b
@@ -803,7 +804,7 @@ b
 b
 g
 g
-g
+f
 b
 b
 a
@@ -1065,8 +1066,8 @@ g
 g
 g
 b
-O
-R
+l
+g
 g
 g
 "}
@@ -1097,8 +1098,8 @@ b
 g
 l
 b
-O
-R
+l
+f
 g
 g
 "}
